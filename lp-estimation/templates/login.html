@@ -9,21 +9,21 @@
 </head>
 <body class="login-page">
   <div class="login-card">
-    <div class="login-logo">
-      {% if logo %}<img src="{{ url_for('static', filename='logo.jpg') }}" alt="LP">{% else %}LP{% endif %}
+    <div class="logo-wrap" style="width:72px;height:72px;border-radius:18px;overflow:hidden;margin:0 auto 24px;box-shadow:0 8px 30px rgba(0,0,0,.4)">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="LP" style="width:100%;height:100%;object-fit:cover;object-position:center 20%">
     </div>
-    <div class="login-brand">LEONARD&nbsp;PROPERTIES</div>
-    <div class="login-tag">Estimation hédoniste</div>
+    <h1 style="font-size:1.4rem;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;color:white">Leonard Properties</h1>
+    <p style="font-size:.85rem;color:rgba(255,255,255,.45);font-weight:400;margin:0 0 36px">Inventaire mobilier</p>
     {% with msgs = get_flashed_messages() %}
-      {% if msgs %}<div class="flash" style="margin:0 0 14px">{{ msgs|join(' ') }}</div>{% endif %}
+      {% if msgs %}<div class="flash" style="margin:0 0 16px">{{ msgs|join(' ') }}</div>{% endif %}
     {% endwith %}
     <form method="post">
-      <div class="field">
-        <input type="password" name="password" autofocus placeholder="Code d'accès">
+      <div class="field" style="text-align:left;margin-bottom:16px">
+        <input type="password" name="password" autofocus placeholder="Mot de passe" style="width:100%;padding:14px 16px;border:1.5px solid rgba(255,255,255,.12);border-radius:13px;font-family:inherit;font-size:16px;color:#fff;background:rgba(255,255,255,.06);outline:none">
       </div>
-      <button class="btn block" type="submit">Accéder</button>
+      <button class="btn block" type="submit" style="width:100%;padding:14px;border:none;border-radius:13px;font-family:inherit;font-size:.95rem;font-weight:600;color:#18150f;background:#fff;cursor:pointer;transition:all .15s">Accéder</button>
     </form>
-    <div class="login-foot">Accès réservé</div>
+    <p style="margin-top:40px;font-size:.7rem;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase">Accès réservé</p>
   </div>
 </body>
 </html>

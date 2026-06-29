@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block title %}Classeur de Comparables - LP Estimation{% endblock %}
+
+{% block content %}
+<style>
+  .classeur-container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .filter-section {
+    background: var(--card-light);
+    border-radius: 13px;
+    padding: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    border: 1px solid var(--line);
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-group label {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .filter-group select,
+  .filter-group input {
+    padding: 8px 12px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    background: rgba(255,255,255,.06);
+    color: var(--ink);
+  }
+
+  .filter-group select:focus,
+  .filter-group input:focus {
+    outline: none;
+    border-color: rgba(255,255,255,.3);
+    box-shadow: 0 0 4px rgba(255,255,255,.08);
+  }
+
+  .btn-reset {
+    padding: 8px 16px;
+    background: var(--accent);
+    color: #18150f;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .btn-reset:hover {
+    background: #f0ece7;
+    transform: translateY(-1px);
+  }
+
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .results-count {
+    font-size: 16px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .properties-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(950px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .property-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    transition: all 0.3s;
+  }
+
+  .property-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,.4);
+    border-color: rgba(255,255,255,.2);
+  }
+
+  .card-header {
+    background: linear-gradient(135deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.04) 100%);
+    color: var(--ink);
+    padding: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .card-header h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .card-header .meta {
+    display: flex;
+    gap: 24px;
+    font-size: 14px;
+    opacity: 0.85;
+  }
+
+  .card-header .meta span {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .comparable-section {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .comparable-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .section-title {
+    font-weight: 700;
+    font-size: 13px;
+    color: rgba(255,255,255,.5);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  .comparable-item {
+    background: rgba(255,255,255,.02);
+    border-left: 4px solid rgba(255,255,255,.12);
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  .comparable-item.missing {
+    background: rgba(255,255,255,.04);
+    border-left-color: rgba(255,255,255,.1);
+    color: var(--muted);
+  }
+
+  .comparable-item .address {
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+
+  .comparable-item .details {
+    display: flex;
+    gap: 20px;
+    color: var(--muted);
+  }
+
+  .comparable-item .detail-item {
+    display: flex;
+    gap: 6px;
+  }
+
+  .comparable-item .detail-item strong {
+    color: var(--ink);
+  }
+
+  .no-results {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    padding: 40px;
+    text-align: center;
+    color: var(--muted);
+  }
+
+  .no-results h2 {
+    margin: 0 0 10px 0;
+    font-size: 20px;
+    color: var(--ink);
+  }
+
+  .stats-bar {
+    background: var(--card-light);
+    border-radius: 13px;
+    padding: 16px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    border: 1px solid var(--line);
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-number {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  @media (max-width: 768px) {
+    .properties-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .filter-section {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .filter-group select,
+    .filter-group input {
+      width: 100%;
+    }
+
+    .btn-reset {
+      width: 100%;
+    }
+  }
+
+  @media print {
+    .filter-section {
+      display: none;
+    }
+
+    .properties-grid {
+      display: block;
+    }
+
+    .property-card {
+      page-break-inside: avoid;
+      margin-bottom: 20px;
+    }
+  }
+</style>
+
+<div class="classeur-container">
+  <h1>Classeur de Comparables</h1>
+
+  <div class="filter-section">
+    <div class="filter-group">
+      <label for="type-filter">Type de bien</label>
+      <select id="type-filter" onchange="applyFilters()">
+        <option value="">Tous les types</option>
+        <option value="Appartement">Appartements</option>
+        <option value="Villa">Villas</option>
+        <option value="Triplex">Triplex</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="quartier-filter">Quartier</label>
+      <select id="quartier-filter" onchange="applyFilters()">
+        <option value="">Tous les quartiers</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="search-filter">Recherche (adresse)</label>
+      <input type="text" id="search-filter" placeholder="Chercher..." onkeyup="applyFilters()" />
+    </div>
+
+    <button class="btn-reset" onclick="resetFilters()">Réinitialiser</button>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-number" id="count-total">-</div>
+      <div class="stat-label">Biens affichés</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number" id="count-complete">-</div>
+      <div class="stat-label">Avec 2 comparables</div>
+    </div>
+  </div>
+
+  <div id="results-container"></div>
+</div>
+
+<script>
+  let allData = null;
+  let filteredData = [];
+
+  // Charger les données au démarrage
+  async function loadData() {
+    try {
+      const response = await fetch('{{ url_for("api_comparables") }}');
+      allData = await response.json();
+      populateQuartiers();
+      applyFilters();
+    } catch (error) {
+      document.getElementById('results-container').innerHTML =
+        '<div class="no-results"><h2>Erreur</h2><p>Impossible de charger les comparables.</p></div>';
+      console.error(error);
+    }
+  }
+
+  function populateQuartiers() {
+    const quartiers = new Set();
+    for (const type in allData.by_type) {
+      allData.by_type[type].forEach(prop => {
+        if (prop.quartier) {
+          quartiers.add(prop.quartier);
+        }
+      });
+    }
+
+    const select = document.getElementById('quartier-filter');
+    const options = Array.from(quartiers).sort();
+    options.forEach(q => {
+      const opt = document.createElement('option');
+      opt.value = q;
+      opt.textContent = q;
+      select.appendChild(opt);
+    });
+  }
+
+  function applyFilters() {
+    const typeFilter = document.getElementById('type-filter').value;
+    const quartierFilter = document.getElementById('quartier-filter').value;
+    const searchFilter = document.getElementById('search-filter').value.toLowerCase();
+
+    filteredData = [];
+
+    for (const type in allData.by_type) {
+      if (typeFilter && type !== typeFilter) continue;
+
+      allData.by_type[type].forEach(prop => {
+        if (quartierFilter && prop.quartier !== quartierFilter) return;
+        if (searchFilter && !prop.address.toLowerCase().includes(searchFilter)) return;
+        filteredData.push(prop);
+      });
+    }
+
+    renderResults();
+  }
+
+  function renderResults() {
+    const container = document.getElementById('results-container');
+    const totalCount = filteredData.length;
+    const completeCount = filteredData.filter(p => p.comparable_close && p.comparable_broad).length;
+
+    document.getElementById('count-total').textContent = totalCount;
+    document.getElementById('count-complete').textContent = completeCount;
+
+    if (totalCount === 0) {
+      container.innerHTML = '<div class="no-results"><h2>Aucun résultat</h2><p>Aucun bien ne correspond à votre recherche.</p></div>';
+      return;
+    }
+
+    let html = '<div class="properties-grid">';
+
+    filteredData.forEach(prop => {
+      html += renderPropertyCard(prop);
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function renderPropertyCard(prop) {
+    const price = prop.price_chf ? prop.price_chf.toLocaleString('fr-CH', { style: 'currency', currency: 'CHF' }) : 'N/A';
+    const surface = prop.surface_sqm ? prop.surface_sqm.toLocaleString('de-CH') : 'N/A';
+    const pricePerSqm = prop.price_per_sqm ? prop.price_per_sqm.toLocaleString('fr-CH', { style: 'currency', currency: 'CHF' }) : 'N/A';
+
+    let html = `
+      <div class="property-card">
+        <div class="card-header">
+          <h3>${escapeHtml(prop.address)}</h3>
+          <div class="meta">
+            <span><strong>${surface}</strong> m²</span>
+            <span><strong>${price}</strong></span>
+            <span><strong>${pricePerSqm}</strong>/m²</span>
+          </div>
+        </div>
+        <div class="card-body">
+    `;
+
+    // Comparable Proche
+    if (prop.comparable_close) {
+      const comp = prop.comparable_close;
+      const compPrice = comp.price_chf.toLocaleString('fr-CH', { style: 'currency', currency: 'CHF' });
+      const compSurface = comp.surface_sqm.toLocaleString('de-CH');
+      const compPriceSqm = comp.price_per_sqm.toLocaleString('fr-CH', { style: 'currency', currency: 'CHF' });
+
+      html += `
+        <div class="comparable-section">
+          <div class="section-title">Comparable Proche (±10% surface, ±15% prix)</div>
+          <div class="comparable-item">
+            <div class="address">${escapeHtml(comp.address)}</div>
+            <div class="details">
+              <div class="detail-item"><strong>${compSurface}</strong> m²</div>
+              <div class="detail-item"><strong>${compPrice}</strong></div>
+              <div class="detail-item"><strong>${compPriceSqm}</strong>/m²</div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="comparable-section">
+          <div class="section-title">Comparable Proche</div>
+          <div class="comparable-item missing">Aucun comparable trouvé</div>
+        </div>
+      `;
+    }
+
+    // Comparable Large
+    if (prop.comparable_broad) {
+      const comp = prop.comparable_broad;
+      const compPrice = comp.price_chf.toLocaleString('fr-CH', { style: 'currency', currency: 'CHF' });
+      const compSurface = comp.surface_sqm.toLocaleString('de-CH');
+      const compPriceSqm = comp.price_per_sqm.toLocaleString('fr-CH', { style: 'currency', currency: 'CHF' });
+
+      html += `
+        <div class="comparable-section">
+          <div class="section-title">Comparable Large (±15% surface, ±20% prix)</div>
+          <div class="comparable-item">
+            <div class="address">${escapeHtml(comp.address)}</div>
+            <div class="details">
+              <div class="detail-item"><strong>${compSurface}</strong> m²</div>
+              <div class="detail-item"><strong>${compPrice}</strong></div>
+              <div class="detail-item"><strong>${compPriceSqm}</strong>/m²</div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="comparable-section">
+          <div class="section-title">Comparable Large</div>
+          <div class="comparable-item missing">Aucun comparable trouvé</div>
+        </div>
+      `;
+    }
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    return html;
+  }
+
+  function resetFilters() {
+    document.getElementById('type-filter').value = '';
+    document.getElementById('quartier-filter').value = '';
+    document.getElementById('search-filter').value = '';
+    applyFilters();
+  }
+
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  }
+
+  // Lancer au chargement
+  window.addEventListener('DOMContentLoaded', loadData);
+</script>
+{% endblock %}
