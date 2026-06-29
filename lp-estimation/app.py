@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import datetime
 from functools import wraps
 from flask import (Flask, render_template, request, redirect, url_for,
@@ -97,8 +98,7 @@ def login():
             session["auth"] = True
             return redirect(url_for("index"))
         flash("Code incorrect.")
-    logo = os.path.exists(os.path.join(app.static_folder, "logo.jpg"))
-    return render_template("login.html", logo=logo)
+    return render_template("login.html", logo=True)
 
 
 @app.route("/logout")
@@ -117,22 +117,111 @@ def _addr_match(adresse, r):
     return key in b or b[:14] in a
 
 
-def ref_for(quartier, adresse):
-    """Retourne (prix_m2 proposé, comparables de la localité).
+def _extract_quarter_from_address(address):
+    """Essaie d'extraire le quartier depuis l'adresse (comme 'Champel' dans 'Avenue de Champel 14')."""
+    if not address:
+        return None
+    addr_lower = address.lower()
+    for q in QUARTIERS:
+        if q.lower() in addr_lower:
+            return q
+    return None
 
-    Le prix proposé privilégie les ventes de l'adresse exacte, sinon la médiane du quartier.
-    Les comparables affichés couvrent l'adresse ET le quartier (plus utile dans le rapport).
+
+def _normalize_type(type_bien):
+    """Normalise le type de bien pour comparaison."""
+    if not type_bien:
+        return "appartement"
+    t = type_bien.lower().strip()
+    if "villa" in t:
+        return "villa"
+    if "triplex" in t:
+        return "triplex"
+    if "duplex" in t:
+        return "duplex"
+    if "attique" in t:
+        return "attique"
+    return "appartement"
+
+
+def ref_for(quartier, adresse, type_bien=None, surface=None):
+    """Retourne (prix_m2 proposé, comparables intelligents de la localité).
+
+    Recherche intelligente :
+    1. Même type de bien (priorité haute)
+    2. Même quartier (priorité 1)
+    3. Surface proche (±15% si on a la donnée) — bonus si présent
+    4. Année récente (bonus)
+
+    Retourne les 2-3 meilleurs comparables basés sur score de pertinence.
     """
     refs = RefPrice.query.all()
-    by_addr = [r for r in refs if _addr_match(adresse, r)]
-    by_quartier = [r for r in refs if quartier and r.quartier and
-                   r.quartier.lower() == quartier.lower()]
-    # pool = union (adresse + quartier), sans doublon
-    pool, seen = [], set()
+    norm_type = _normalize_type(type_bien)
+
+    # Essayer d'extraire le quartier de l'adresse si non fourni
+    extracted_q = _extract_quarter_from_address(adresse)
+    search_quartier = quartier or extracted_q
+
+    # Filtrer par type de bien
+    refs_by_type = [r for r in refs if _normalize_type(r.kind) == "sold" or r.kind in ("sold", "retenu")]
+
+    # Score de pertinence pour chaque référence
+    scored_refs = []
+    for r in refs_by_type:
+        score = 0
+        reasons = []
+
+        # Type identique (10 pts)
+        if hasattr(r, 'type_bien') and _normalize_type(r.type_bien) == norm_type:
+            score += 10
+            reasons.append("type_match")
+
+        # Même quartier (8 pts)
+        if search_quartier and r.quartier and r.quartier.lower() == search_quartier.lower():
+            score += 8
+            reasons.append("quartier")
+
+        # Adresse exacte (12 pts)
+        if _addr_match(adresse, r):
+            score += 12
+            reasons.append("adresse")
+
+        # Surface proche (5 pts, si on a la donnée)
+        if surface and hasattr(r, 'surface') and r.surface:
+            diff = abs(r.surface - surface) / surface
+            if diff <= 0.15:
+                score += 5
+                reasons.append("surface")
+
+        # Année récente (3 pts bonus par année après 2020)
+        if r.annee:
+            try:
+                year = int(r.annee)
+                if year >= 2020:
+                    score += min(3 * (year - 2019), 9)
+                    reasons.append("recent")
+            except (ValueError, TypeError):
+                pass
+
+        if score > 0 and r.prix_m2:
+            scored_refs.append((r, score, reasons))
+
+    # Trier par score (meilleurs en premier)
+    scored_refs.sort(key=lambda x: x[1], reverse=True)
+
+    # Pool : prendre les 3 meilleurs, puis compléter avec adresse/quartier
+    pool = [r for r, _, _ in scored_refs[:3]]
+
+    # Ajouter les références non scorées mais pertinentes (adresse ou quartier)
+    by_addr = [r for r in refs if _addr_match(adresse, r) and r not in pool]
+    by_quartier = [r for r in refs if search_quartier and r.quartier and
+                   r.quartier.lower() == search_quartier.lower() and r not in pool]
+
+    seen = {r.id for r in pool}
     for r in by_addr + by_quartier:
-        if r.id not in seen:
-            seen.add(r.id)
+        if r.id not in seen and len(pool) < 8:
             pool.append(r)
+            seen.add(r.id)
 
     def median(vals):
         vals = sorted(vals)
@@ -145,11 +234,39 @@ def ref_for(quartier, adresse):
 
 
 # ----------------------- ROUTES -----------------------
+CLASSEUR = [
+    ("Appartements", ["Appartement"]),
+    ("Maisons", ["Maison", "Villa"]),
+    ("Attiques", ["Attique"]),
+    ("Duplex & Triplex", ["Duplex", "Triplex"]),
+]
+
+
+def _classeur(estimations):
+    groups = {label: [] for label, _ in CLASSEUR}
+    autres = []
+    for e in estimations:
+        t = (e.type_bien or "").strip().lower()
+        placed = False
+        for label, kinds in CLASSEUR:
+            if any(k.lower() in t for k in kinds):
+                groups[label].append(e)
+                placed = True
+                break
+        if not placed:
+            autres.append(e)
+    if autres:
+        groups["Autres"] = autres
+    return groups
+
+
 @app.route("/")
 @login_required
 def index():
     estimations = Estimation.query.order_by(Estimation.created_at.desc()).all()
-    return render_template("index.html", estimations=estimations, quartiers=QUARTIERS)
+    groups = _classeur(estimations)
+    return render_template("index.html", estimations=estimations,
+                           groups=groups, quartiers=QUARTIERS)
 
 
 @app.route("/upload", methods=["POST"])
@@ -161,7 +278,8 @@ def upload():
         return jsonify({"error": "Aucun fichier"}), 400
     text = extract_text(file)
     fields = extract_fields(text)
-    proposed, pool = ref_for(fields.get("quartier"), fields.get("address"))
+    proposed, pool = ref_for(fields.get("quartier"), fields.get("address"),
+                             fields.get("type_bien"), fields.get("surface"))
     if proposed and not fields.get("prix_m2"):
         fields["prix_m2"] = round(proposed)
     fields["_refs"] = [{"adresse": r.adresse, "quartier": r.quartier,
@@ -198,7 +316,7 @@ def estimation_new():
 @login_required
 def estimation_report(eid):
     e = Estimation.query.get_or_404(eid)
-    _, pool = ref_for(e.quartier, e.address)
+    _, pool = ref_for(e.quartier, e.address, e.type_bien, e.surface)
     sold = [r for r in pool if r.kind in ("sold", "retenu")]
     forsale = [r for r in pool if r.kind == "forsale"]
     html = build_report(e, sold, forsale)
@@ -263,37 +381,128 @@ def m2(v):
         return "—"
 
 
+def _load_comparables_from_json():
+    """Charge les 184 comparables du JSON comparables.json."""
+    comparables = []
+    try:
+        # Chercher le JSON dans le répertoire courant, puis parent
+        json_path = os.path.join(os.path.dirname(__file__), 'comparables.json')
+        if not os.path.exists(json_path):
+            json_path = os.path.join(os.path.dirname(__file__), '..', 'comparables.json')
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                # Parcourir les propriétés dans 'all_properties' ou 'by_type'
+                all_props = data.get('all_properties', [])
+                if not all_props:
+                    # Fallback si 'all_properties' n'existe pas
+                    for type_key, props in data.get('by_type', {}).items():
+                        all_props.extend(props)
+
+                for prop in all_props:
+                    address = prop.get('address', '')
+                    prop_type = prop.get('type', 'Appartement')
+                    year = prop.get('year')
+                    if address and address.strip() and not address.startswith('~$'):
+                        # Essayer d'extraire le quartier de l'adresse
+                        quartier = _extract_quarter_from_address(address)
+                        comparables.append({
+                            'quartier': quartier,
+                            'adresse': address,
+                            'prix_m2': None,  # À enrichir plus tard
+                            'annee': str(year) if year else None,
+                            'source': 'Comparables JSON',
+                            'kind': 'sold',
+                            'type_bien': prop_type
+                        })
+    except Exception as e:
+        print(f"Erreur lors du chargement du JSON: {e}")
+    return comparables
+
+
 def seed():
     db.create_all()
     if RefPrice.query.first():
         return
-    # Références prix/m² APPARTEMENTS, extraites des estimations LP fournies
-    data = [
-        # quartier, adresse, prix_m2, annee, source, kind
-        ("Pâquis", "Abraham-Gevray 1 (lots 3.03/4.03)", 15527, "2025", "Estimation Gevray 1", "sold"),
-        ("Pâquis", "Abraham-Gevray 1 (lots 5.05/6.04)", 19567, "2024", "Estimation Gevray 1", "sold"),
-        ("Pâquis", "Abraham-Gevray 1 (lot 5.07)", 19215, "2024", "Estimation Gevray 1", "sold"),
-        ("Pâquis", "Abraham-Gevray 1 (attique 10.01/9.01)", 29319, "2024", "Estimation Gevray 1", "sold"),
-        ("Pâquis", "Abraham-Gevray 1 (lots 5.02/6.02)", 21343, "2022", "Estimation Gevray 1", "sold"),
-        ("Pâquis", "Abraham-Gevray 1 (retenu)", 22000, "2026", "Estimation Gevray 1 — prix retenu", "retenu"),
-        ("Eaux-Vives", "Rue Abraham-Constantin 4-6", 19494, "2024", "Estimation Florissant 47", "sold"),
-        ("Eaux-Vives", "Avenue Alfred-Bertrand 13", 21531, "2024", "Estimation Florissant 47", "sold"),
-        ("Eaux-Vives", "Avenue Peschier 24", 15918, "2023", "Estimation Florissant 47", "sold"),
-        ("Eaux-Vives", "Route de Florissant 47 (retenu)", 19876, "2025", "Estimation Florissant 47 — prix retenu", "retenu"),
-        ("Champel", "Avenue de Champel 14", 21120, "2023", "Estimation Florissant 47", "sold"),
-        ("Champel", "Avenue de Champel 14", 22719, "2022", "Estimation Florissant 47", "sold"),
-        ("Champel", "Rue Monnier 1", 18478, "2023", "Estimation Florissant 47", "forsale"),
-        ("Champel", "Chemin Tour de Champel 12", 17883, "2025", "Estimation Champel 60", "forsale"),
-        ("Champel", "Avenue de Miremont 30 (retenu)", 14000, "2026", "Estimation Miremont 30 — prix retenu", "retenu"),
+
+    # 15 Références prix/m² SEED DATA — extraites des estimations LP fournies
+    seed_data = [
+        # quartier, adresse, prix_m2, annee, source, kind, type_bien
+        ("Pâquis", "Abraham-Gevray 1 (lots 3.03/4.03)", 15527, "2025", "Estimation Gevray 1", "sold", "Appartement"),
+        ("Pâquis", "Abraham-Gevray 1 (lots 5.05/6.04)", 19567, "2024", "Estimation Gevray 1", "sold", "Appartement"),
+        ("Pâquis", "Abraham-Gevray 1 (lot 5.07)", 19215, "2024", "Estimation Gevray 1", "sold", "Appartement"),
+        ("Pâquis", "Abraham-Gevray 1 (attique 10.01/9.01)", 29319, "2024", "Estimation Gevray 1", "sold", "Attique"),
+        ("Pâquis", "Abraham-Gevray 1 (lots 5.02/6.02)", 21343, "2022", "Estimation Gevray 1", "sold", "Appartement"),
+        ("Pâquis", "Abraham-Gevray 1 (retenu)", 22000, "2026", "Estimation Gevray 1 — prix retenu", "retenu", "Appartement"),
+        ("Eaux-Vives", "Rue Abraham-Constantin 4-6", 19494, "2024", "Estimation Florissant 47", "sold", "Appartement"),
+        ("Eaux-Vives", "Avenue Alfred-Bertrand 13", 21531, "2024", "Estimation Florissant 47", "sold", "Appartement"),
+        ("Eaux-Vives", "Avenue Peschier 24", 15918, "2023", "Estimation Florissant 47", "sold", "Appartement"),
+        ("Eaux-Vives", "Route de Florissant 47 (retenu)", 19876, "2025", "Estimation Florissant 47 — prix retenu", "retenu", "Appartement"),
+        ("Champel", "Avenue de Champel 14", 21120, "2023", "Estimation Florissant 47", "sold", "Appartement"),
+        ("Champel", "Avenue de Champel 14", 22719, "2022", "Estimation Florissant 47", "sold", "Appartement"),
+        ("Champel", "Rue Monnier 1", 18478, "2023", "Estimation Florissant 47", "forsale", "Appartement"),
+        ("Champel", "Chemin Tour de Champel 12", 17883, "2025", "Estimation Champel 60", "forsale", "Appartement"),
+        ("Champel", "Avenue de Miremont 30 (retenu)", 14000, "2026", "Estimation Miremont 30 — prix retenu", "retenu", "Appartement"),
     ]
-    for q, a, pm, an, src, k in data:
+
+    # Charger les seed data
+    for q, a, pm, an, src, k, typ in seed_data:
         db.session.add(RefPrice(quartier=q, adresse=a, prix_m2=pm, annee=an, source=src, kind=k))
+
+    # Charger les 184 comparables du JSON
+    json_comparables = _load_comparables_from_json()
+    for comp in json_comparables:
+        db.session.add(RefPrice(
+            quartier=comp['quartier'],
+            adresse=comp['adresse'],
+            prix_m2=comp['prix_m2'],
+            annee=comp['annee'],
+            source=comp['source'],
+            kind=comp['kind']
+        ))
+
     db.session.commit()
+    print(f"Database seeded: {len(seed_data)} seed data + {len(json_comparables)} comparables = {len(seed_data) + len(json_comparables)} total")
 
 
 with app.app_context():
     db.create_all()
     seed()
+
+
+
+# ----------------------- ROUTES CLASSEUR COMPARABLES -----------------------
+
+@app.route("/classeur")
+@login_required
+def classeur():
+    """Page interactive du classeur de comparables."""
+    return render_template("classeur.html")
+
+
+@app.route("/api/comparables")
+@login_required
+def api_comparables():
+    """API JSON pour les comparables enrichis avec matching."""
+    try:
+        # Chercher le JSON matché dans le répertoire courant
+        json_path = os.path.join(os.path.dirname(__file__), 'comparables_matched.json')
+        if not os.path.exists(json_path):
+            # Fallback sur enriched
+            json_path = os.path.join(os.path.dirname(__file__), 'comparables_enriched.json')
+        if not os.path.exists(json_path):
+            json_path = os.path.join(os.path.dirname(__file__), 'comparables.json')
+
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return jsonify(data)
+        else:
+            return jsonify({"error": "Comparables file not found"}), 404
+    except Exception as e:
+        print(f"Erreur API comparables: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 
 if __name__ == "__main__":
