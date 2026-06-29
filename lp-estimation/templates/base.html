@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}LP · Estimation hédoniste{% endblock %}</title>
+<title>{% block title %}LP · Outils d'estimation I.A{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 <header class="topbar no-print">
-  <a class="brand" href="{{ url_for('index') }}">LEONARD&nbsp;PROPERTIES</a>
+  <a class="brand" href="{{ url_for('index') }}"><img class="brand-logo" src="{{ url_for('static', filename='logo.png') }}" alt="">LEONARD&nbsp;PROPERTIES</a>
   <nav>
     <a href="{{ url_for('index') }}">Estimations</a>
+    <a href="{{ url_for('classeur') }}">Classeur</a>
     <a href="{{ url_for('references') }}">Références prix/m²</a>
     <a href="{{ url_for('logout') }}" class="ghost">Quitter</a>
   </nav>
