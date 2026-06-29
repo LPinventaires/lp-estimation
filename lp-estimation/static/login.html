@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#18150f">
+<title>Leonard Properties — Connexion</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <div class="logo-wrap" style="width:150px;height:150px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center">
+      <img src="{{ url_for('static', filename='logo-leonard.jpg') }}" alt="Leonard Properties" style="width:100%;height:100%;object-fit:contain">
+    </div>
+    <h1 style="font-size:1.4rem;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;color:white">Leonard Properties</h1>
+    <p style="font-size:.85rem;color:rgba(255,255,255,.45);font-weight:400;margin:0 0 36px">Inventaire mobilier</p>
+    {% with msgs = get_flashed_messages() %}
+      {% if msgs %}<div class="flash" style="margin:0 0 16px">{{ msgs|join(' ') }}</div>{% endif %}
+    {% endwith %}
+    <form method="post">
+      <div class="field" style="text-align:left;margin-bottom:16px">
+        <input type="password" name="password" autofocus placeholder="Mot de passe" style="width:100%;padding:14px 16px;border:1.5px solid rgba(255,255,255,.12);border-radius:13px;font-family:inherit;font-size:16px;color:#fff;background:rgba(255,255,255,.06);outline:none">
+      </div>
+      <button class="btn block" type="submit" style="width:100%;padding:14px;border:none;border-radius:13px;font-family:inherit;font-size:.95rem;font-weight:600;color:#18150f;background:#fff;cursor:pointer;transition:all .15s">Accéder</button>
+    </form>
+    <p style="margin-top:40px;font-size:.7rem;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase">Accès réservé</p>
+  </div>
+</body>
+</html>
