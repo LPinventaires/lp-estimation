@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Rapport — {{ e.address }}{% endblock %}
+{% block content %}
+<div class="report-actions no-print">
+  <a class="btn secondary" href="{{ url_for('index') }}">← Retour</a>
+  <button class="btn" onclick="window.print()">Imprimer / PDF</button>
+</div>
+<div class="report">
+  <div class="head">
+    <div class="logo">LEONARD PROPERTIES</div>
+    <div class="right muted">Rapport d'estimation hédoniste<br>{{ e.created_at.strftime('%d.%m.%Y') }}</div>
+  </div>
+  <h1 style="color:#1f3864">{{ e.address or 'Bien à estimer' }}</h1>
+  <p class="muted" style="color:#6b7280">{{ e.type_bien }}{% if e.surface %} · {{ e.surface|m2 }} m²{% endif %}{% if e.quartier %} · {{ e.quartier }}{% endif %}</p>
+  {{ report_html|safe }}
+</div>
+{% endblock %}
