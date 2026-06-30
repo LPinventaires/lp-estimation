@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Paramètres</h1>
+<p class="sub">Personnalisez votre application.</p>
+
+<div class="card">
+  <h2>Logo</h2>
+  <p class="sub" style="margin:0 0 16px">
+    Téléchargez un logo pour afficher dans l'en-tête et sur la page de connexion.
+  </p>
+
+  {% if current_logo %}
+  <div style="margin-bottom:18px">
+    <div style="color:var(--muted);font-size:13px;margin-bottom:8px">Logo actuel:</div>
+    <div style="width:120px;height:120px;border-radius:12px;border:1px solid var(--line);padding:8px;display:flex;align-items:center;justify-content:center;background:var(--bg2)">
+      <img src="{{ url_for('static', filename='uploads/' + current_logo) }}" alt="Logo actuel" style="max-width:100%;max-height:100%;object-fit:contain">
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    <div class="field">
+      <label for="logo_file">Importer un logo</label>
+      <input type="file" id="logo_file" name="logo_file" accept="image/png,image/jpeg,image/gif" required>
+      <div class="hint">
+        Formats autorisés: PNG, JPG, GIF — Taille max: 2 MB
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn" type="submit">Télécharger le logo</button>
+    </div>
+  </form>
+
+  <div style="color:var(--muted);font-size:13px;margin-top:16px;border-top:1px solid var(--line);padding-top:12px">
+    Le logo s'affichera en taille réelle dans l'en-tête et sur la page de connexion.
+  </div>
+</div>
+
+{% endblock %}
