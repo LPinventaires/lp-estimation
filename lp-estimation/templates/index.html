@@ -14,7 +14,14 @@
     </div>
     <div id="status"></div>
   </div>
-
+<div class="card">
+  <div class="section-title">📝 Ou écris/colle directement</div>
+  <div class="field">
+    <label>Texte libre : adresse, description, données…</label>
+    <textarea id="textInput" rows="6" placeholder="Ex: Avenue de Champel 64, Champel, appartement 4P, 115m², excellent état…" style="font-family: monospace; font-size: 13px;"></textarea>
+    <button type="button" onclick="processText()" class="btn secondary" style="margin-top: 8px; width: 100%;">Traiter ce texte →</button>
+  </div>
+</div>
   <div id="formArea" style="display:none">
     {% include "_form_fields.html" %}
     <div class="toolbar no-print">
@@ -74,6 +81,25 @@ function send(file){
       st.textContent=msg;
       area.scrollIntoView({behavior:'smooth'});
     }).catch(()=>{st.textContent='⚠ Erreur de lecture du fichier.';});
+}
+  function processText(){
+  const text=document.getElementById('textInput').value.trim();
+  if(!text){st.textContent='⚠ Entre du texte.';return;}
+  st.textContent='Analyse du texte…';
+  const fd=new FormData();
+  fd.append('text',text);
+  fetch('{{ url_for("upload") }}',{method:'POST',body:fd})
+    .then(r=>r.json()).then(d=>{
+      if(d.error){st.textContent='⚠ '+d.error;return;}
+      ['address','quartier','type_bien','surface','pieces','etage','annee','etat',
+       'balcon','parking_nb','prix_m2'].forEach(k=>set(k,d[k]));
+      document.getElementById('textInput').value='';
+      area.style.display='block';
+      let msg='✓ Texte traité — vérifie et complète avant de générer.';
+      if(d._refs&&d._refs.length)msg+=` (${d._refs.length} comparable(s))`;
+      st.textContent=msg;
+      area.scrollIntoView({behavior:'smooth'});
+    }).catch(()=>{st.textContent='⚠ Erreur de traitement du texte.';});
 }
 </script>
 {% endblock %}
