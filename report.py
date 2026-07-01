@@ -6,9 +6,7 @@ Les chiffres sont calculés de façon déterministe ; seule la rédaction est mi
 """
 
 QUARTIERS = [
-    "Pâquis", "Eaux-Vives", "Champel", "Plainpalais", "Cité",
-    "Servette", "Saint-Jean", "Jonction", "Acacias", "Cologny",
-    "Florissant", "Malagnou", "Chêne-Bougeries", "Carouge",
+    "Champel", "Eaux-Vives", "Miremont",
 ]
 
 

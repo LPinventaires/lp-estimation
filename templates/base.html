@@ -13,19 +13,17 @@
 </head>
 <body data-theme="{{ session.get('theme', 'light') }}">
 <header class="topbar no-print">
-  <a class="brand" href="{{ url_for('index') }}">
+  <a class="brand" href="{{ url_for('dashboard') }}">
     LEONARD&nbsp;PROPERTIES
   </a>
   <nav>
-    <a href="{{ url_for('index') }}">Estimations</a>
-    <a href="{{ url_for('analysis') }}">Analyse rapide</a>
-    <a href="{{ url_for('estimations_list') }}">Historique</a>
     <a href="{{ url_for('dashboard') }}">Tableau de bord</a>
+    <a href="{{ url_for('estimation_new') }}">Nouvelle estimation</a>
+    <a href="{{ url_for('estimations_list') }}">Historique</a>
     <a href="{{ url_for('references') }}">Références prix/m²</a>
-    <a href="{{ url_for('import_csv') }}">Importer CSV</a>
     <a href="{{ url_for('settings') }}">Paramètres</a>
     <a href="javascript:toggleTheme()" title="Dark/Light mode" style="cursor:pointer;">🌙</a>
-    <a href="{{ url_for('logout') }}" class="ghost">Quitter</a>
+    <a href="{{ url_for('logout') }}" class="ghost">Se déconnecter</a>
   </nav>
   <script>
     function toggleTheme() {

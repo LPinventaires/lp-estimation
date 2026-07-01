@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2a2520">
+<title>Leonard Properties — Estimation immobilière</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+  .landing{min-height:100vh;background:radial-gradient(130% 120% at 50% -10%,#f9f5f0,#f0e8dc 60%);display:flex;flex-direction:column}
+  .landing header{display:flex;justify-content:space-between;align-items:center;padding:22px 40px;max-width:1080px;margin:0 auto;width:100%;box-sizing:border-box}
+  .landing header .brand{color:#2a2520;font-weight:700;letter-spacing:.18em;font-size:15px}
+  .landing header nav a{margin-left:14px;color:#2a2520;text-decoration:none;font-size:14px}
+  .landing header nav a.btn{margin-left:14px}
+  .hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 24px;max-width:820px;margin:0 auto}
+  .hero .eyebrow{color:var(--accent);text-transform:uppercase;letter-spacing:.22em;font-size:12px;font-weight:600;margin-bottom:18px}
+  .hero h1{font-size:44px;line-height:1.15;color:#2a2520;margin:0 0 18px;font-weight:700;letter-spacing:-.01em}
+  .hero p.lead{font-size:17px;color:#5a5145;max-width:600px;margin:0 0 34px;line-height:1.55}
+  .hero .cta{display:flex;gap:12px;justify-content:center}
+  .hero .cta .btn.secondary{background:transparent;color:#2a2520;border:1px solid #cdb694}
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:960px;margin:0 auto 60px;padding:0 24px;width:100%;box-sizing:border-box}
+  .feature{background:#fef9f4;border:1px solid #e8e2d8;border-radius:12px;padding:22px}
+  .feature .icon{width:36px;height:36px;background:var(--accent);border-radius:8px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+  .feature h3{margin:0 0 6px;color:#2a2520;font-size:15px}
+  .feature p{margin:0;color:#6b6152;font-size:13px;line-height:1.5}
+  .landing footer{text-align:center;color:#8b8477;font-size:12px;padding:20px;letter-spacing:.08em;text-transform:uppercase}
+  @media (max-width:720px){
+    .hero h1{font-size:32px}
+    .features{grid-template-columns:1fr}
+    .landing header{padding:16px 20px}
+  }
+</style>
+</head>
+<body>
+<div class="landing">
+  <header>
+    <div class="brand">LEONARD&nbsp;PROPERTIES</div>
+    <nav>
+      <a href="{{ url_for('login') }}">Connexion</a>
+      <a href="{{ url_for('signup') }}" class="btn">Créer un compte</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">Estimation hédoniste</div>
+    <h1>Estimez la valeur d'un appartement avec la méthode LP</h1>
+    <p class="lead">
+      Outil interne d'estimation par la méthode hédoniste — appartements à Champel, Eaux-Vives et Miremont.
+      Renseignez adresse, quartier, surface et description : l'app calcule la valeur vénale à partir des comparables et vous produit un rapport.
+    </p>
+    <div class="cta">
+      <a href="{{ url_for('signup') }}" class="btn">Créer un compte</a>
+      <a href="{{ url_for('login') }}" class="btn secondary">Se connecter</a>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="feature">
+      <div class="icon">1</div>
+      <h3>Nouvelle estimation</h3>
+      <p>Renseignez le bien : adresse, quartier, surface, état. L'app propose un prix/m² à partir des ventes comparables.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">2</div>
+      <h3>Méthode hédoniste</h3>
+      <p>Valeur vénale = prix/m² × surface, ajustée par les extérieurs et les parkings. Comparables affichés à l'appui.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">3</div>
+      <h3>Historique perso</h3>
+      <p>Toutes vos estimations sont conservées dans votre tableau de bord et exportables.</p>
+    </div>
+  </section>
+
+  <footer>Leonard Properties · Accès réservé</footer>
+</div>
+</body>
+</html>

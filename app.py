@@ -7,6 +7,7 @@ from flask import (Flask, render_template, request, redirect, url_for,
                    session, flash, jsonify, send_file)
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from parsing import extract_text, extract_fields
 from report import build_report, QUARTIERS
@@ -47,6 +48,7 @@ class RefPrice(db.Model):
 class Estimation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
     address = db.Column(db.String(200))
     quartier = db.Column(db.String(120))
     type_bien = db.Column(db.String(80))
@@ -114,14 +116,49 @@ class PriceAlert(db.Model):
     triggered = db.Column(db.Boolean, default=False)
 
 
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    email = db.Column(db.String(200), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    name = db.Column(db.String(120))
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password, method="pbkdf2:sha256")
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
 # ----------------------- AUTH -----------------------
 def login_required(f):
     @wraps(f)
     def wrap(*a, **k):
-        if APP_PASSWORD and not session.get("auth"):
+        if not session.get("user_id"):
             return redirect(url_for("login"))
         return f(*a, **k)
     return wrap
+
+
+def current_user():
+    uid = session.get("user_id")
+    if not uid:
+        return None
+    return User.query.get(uid)
+
+
+def own_estimations():
+    """Query base — estimations de l'utilisateur connecté seulement."""
+    return Estimation.query.filter_by(user_id=session.get("user_id"))
+
+
+def own_estimation_or_404(eid):
+    """Fetch une estimation appartenant à l'utilisateur connecté, sinon 404."""
+    e = own_estimations().filter_by(id=eid).first()
+    if not e:
+        from flask import abort
+        abort(404)
+    return e
 
 
 def get_logo_path():
@@ -148,21 +185,50 @@ def log_audit(action, est_id, description=""):
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if not APP_PASSWORD:
-        return redirect(url_for("index"))
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
     if request.method == "POST":
-        if request.form.get("password") == APP_PASSWORD:
-            session["auth"] = True
-            return redirect(url_for("index"))
-        flash("Code incorrect.")
-    logo = get_logo_path()
-    return render_template("login.html", logo=logo)
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+        user = User.query.filter_by(email=email).first()
+        if user and user.check_password(password):
+            session["user_id"] = user.id
+            return redirect(url_for("dashboard"))
+        flash("Email ou mot de passe incorrect.")
+    return render_template("login.html", logo=get_logo_path())
+
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+        confirm = request.form.get("confirm") or ""
+        name = (request.form.get("name") or "").strip()
+        if not email or "@" not in email:
+            flash("Email invalide.")
+        elif len(password) < 8:
+            flash("Le mot de passe doit faire au moins 8 caractères.")
+        elif password != confirm:
+            flash("Les mots de passe ne correspondent pas.")
+        elif User.query.filter_by(email=email).first():
+            flash("Un compte existe déjà pour cet email.")
+        else:
+            user = User(email=email, name=name or None)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            session["user_id"] = user.id
+            return redirect(url_for("dashboard"))
+    return render_template("signup.html", logo=get_logo_path())
 
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    return redirect(url_for("index"))
 
 
 @app.route("/settings", methods=["GET", "POST"])
@@ -267,10 +333,10 @@ def ref_for(quartier, adresse):
 
 # ----------------------- ROUTES -----------------------
 @app.route("/")
-@login_required
 def index():
-    estimations = Estimation.query.order_by(Estimation.created_at.desc()).all()
-    return render_template("index.html", estimations=estimations, quartiers=QUARTIERS)
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
+    return render_template("landing.html")
 
 
 @app.route("/upload", methods=["POST"])
@@ -301,6 +367,7 @@ def estimation_new():
             except ValueError:
                 return d
         e = Estimation(
+            user_id=session.get("user_id"),
             address=f.get("address"), quartier=f.get("quartier"),
             type_bien=f.get("type_bien"), surface=num("surface"),
             pieces=f.get("pieces"), etage=f.get("etage"), annee=f.get("annee"),
@@ -318,7 +385,7 @@ def estimation_new():
 @app.route("/estimation/<int:eid>")
 @login_required
 def estimation_report(eid):
-    e = Estimation.query.get_or_404(eid)
+    e = own_estimation_or_404(eid)
     _, pool = ref_for(e.quartier, e.address)
     sold = [r for r in pool if r.kind in ("sold", "retenu")]
     forsale = [r for r in pool if r.kind == "forsale"]
@@ -329,7 +396,7 @@ def estimation_report(eid):
 @app.route("/estimation/<int:eid>/delete", methods=["POST"])
 @login_required
 def estimation_delete(eid):
-    e = Estimation.query.get_or_404(eid)
+    e = own_estimation_or_404(eid)
     db.session.delete(e)
     db.session.commit()
     return redirect(url_for("index"))
@@ -446,7 +513,7 @@ def estimations_list():
     q = request.args.get("q", "").strip()
     quartier = request.args.get("quartier", "").strip()
 
-    query = Estimation.query
+    query = own_estimations()
     if q:
         query = query.filter(
             db.or_(
@@ -466,7 +533,7 @@ def estimations_list():
 @login_required
 def estimation_clone(eid):
     """Clone une estimation existante."""
-    e = Estimation.query.get_or_404(eid)
+    e = own_estimation_or_404(eid)
     new_e = Estimation(
         address=e.address, quartier=e.quartier, type_bien=e.type_bien,
         surface=e.surface, pieces=e.pieces, etage=e.etage, annee=e.annee,
@@ -486,7 +553,7 @@ def estimation_clone(eid):
 @login_required
 def estimation_notes(eid):
     """Éditer les notes d'une estimation."""
-    e = Estimation.query.get_or_404(eid)
+    e = own_estimation_or_404(eid)
     e.notes = request.form.get("notes", "")
     db.session.commit()
     log_audit("updated_notes", e.id)
@@ -497,28 +564,33 @@ def estimation_notes(eid):
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    """Tableau de bord avec statistiques."""
-    total = Estimation.query.count()
+    """Tableau de bord de l'utilisateur — ses estimations et un CTA nouvelle estimation."""
+    uid = session.get("user_id")
+    total = own_estimations().count()
+    # prix_presentation est une @property Python : on approxime en SQL par prix_m2*surface*(1+marge)
     by_quartier = db.session.query(
         Estimation.quartier,
         db.func.count(Estimation.id),
         db.func.avg(Estimation.prix_m2),
-        db.func.avg(Estimation.prix_presentation)
-    ).group_by(Estimation.quartier).all()
+        db.func.avg(Estimation.prix_m2 * Estimation.surface * (1 + Estimation.marge))
+    ).filter(Estimation.user_id == uid).group_by(Estimation.quartier).all()
 
-    recent = Estimation.query.order_by(Estimation.created_at.desc()).limit(10).all()
+    recent = own_estimations().order_by(Estimation.created_at.desc()).limit(10).all()
 
-    logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(20).all()
+    # Audit logs restreints aux estimations de l'utilisateur.
+    own_ids = [row[0] for row in db.session.query(Estimation.id).filter_by(user_id=uid).all()]
+    logs = (AuditLog.query.filter(AuditLog.estimation_id.in_(own_ids))
+            .order_by(AuditLog.created_at.desc()).limit(20).all()) if own_ids else []
 
     return render_template("dashboard.html", total=total, by_quartier=by_quartier,
-                         recent=recent, logs=logs)
+                         recent=recent, logs=logs, user=current_user())
 
 
 @app.route("/estimation/<int:eid>/export.pdf")
 @login_required
 def estimation_export_pdf(eid):
     """Exporte une estimation en PDF (via HTML printable)."""
-    e = Estimation.query.get_or_404(eid)
+    e = own_estimation_or_404(eid)
     _, pool = ref_for(e.quartier, e.address)
     sold = [r for r in pool if r.kind in ("sold", "retenu")]
     forsale = [r for r in pool if r.kind == "forsale"]
@@ -601,7 +673,7 @@ def set_theme(theme):
 @login_required
 def estimation_export_csv(eid):
     """Exporte une estimation en CSV."""
-    e = Estimation.query.get_or_404(eid)
+    e = own_estimation_or_404(eid)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -630,8 +702,8 @@ def estimation_export_csv(eid):
 @app.route("/export-all.csv")
 @login_required
 def export_all_csv():
-    """Exporte toutes les estimations en CSV."""
-    estimations = Estimation.query.all()
+    """Exporte toutes les estimations de l'utilisateur en CSV."""
+    estimations = own_estimations().all()
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -709,8 +781,19 @@ def seed():
     db.session.commit()
 
 
+def _migrate():
+    """Ajoute les colonnes ajoutées après le déploiement initial (sans framework de migration)."""
+    from sqlalchemy import text
+    try:
+        db.session.execute(text("ALTER TABLE estimation ADD COLUMN user_id INTEGER"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+
 with app.app_context():
     db.create_all()
+    _migrate()
     seed()
 
 

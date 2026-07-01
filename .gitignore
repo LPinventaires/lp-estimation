@@ -8,3 +8,9 @@ instance/
 __pycache__/
 instance/
 venv/
+
+# added: venv + local db + preview config
+venv/
+lp_estim.db
+instance/
+.claude/

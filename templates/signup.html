@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#2a2520">
-<title>Leonard Properties — Connexion</title>
+<title>Leonard Properties — Inscription</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <style>
   .login-card{width:340px}
@@ -19,21 +19,27 @@
       {% if logo %}<img src="{{ url_for('static', filename='uploads/' + logo) }}" alt="LP">{% else %}LP{% endif %}
     </div>
     <div class="login-brand">LEONARD&nbsp;PROPERTIES</div>
-    <div class="login-tag">Connexion</div>
+    <div class="login-tag">Créer un compte</div>
     {% with msgs = get_flashed_messages() %}
       {% if msgs %}<div class="flash" style="margin:0 0 14px">{{ msgs|join(' ') }}</div>{% endif %}
     {% endwith %}
     <form method="post">
       <div class="field">
-        <input type="email" name="email" autofocus required placeholder="Email">
+        <input type="text" name="name" placeholder="Nom (optionnel)">
       </div>
       <div class="field">
-        <input type="password" name="password" required placeholder="Mot de passe">
+        <input type="email" name="email" required placeholder="Email">
       </div>
-      <button class="btn block" type="submit">Se connecter</button>
+      <div class="field">
+        <input type="password" name="password" required placeholder="Mot de passe (8 caractères min.)">
+      </div>
+      <div class="field">
+        <input type="password" name="confirm" required placeholder="Confirmer le mot de passe">
+      </div>
+      <button class="btn block" type="submit">Créer mon compte</button>
     </form>
     <div class="login-alt">
-      Pas encore de compte ? <a href="{{ url_for('signup') }}">Créer un compte</a>
+      Déjà un compte ? <a href="{{ url_for('login') }}">Se connecter</a>
     </div>
     <div class="login-foot"><a href="{{ url_for('index') }}" style="color:inherit">← Accueil</a></div>
   </div>
