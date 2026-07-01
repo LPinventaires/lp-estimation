@@ -1,13 +1,16 @@
 import os
 import csv
 import io
+import base64
 from datetime import datetime
 from functools import wraps
+from typing import Optional
 from flask import (Flask, render_template, request, redirect, url_for,
                    session, flash, jsonify, send_file)
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+from pydantic import BaseModel, Field
 
 from parsing import extract_text, extract_fields
 from report import build_report, QUARTIERS
@@ -350,6 +353,100 @@ def upload():
     fields = extract_fields(text)
     proposed, pool = ref_for(fields.get("quartier"), fields.get("address"))
     if proposed and not fields.get("prix_m2"):
+        fields["prix_m2"] = round(proposed)
+    fields["_refs"] = [{"adresse": r.adresse, "quartier": r.quartier,
+                        "prix_m2": r.prix_m2, "annee": r.annee, "kind": r.kind} for r in pool]
+    return jsonify(fields)
+
+
+class PhotoExtraction(BaseModel):
+    """Champs extraits d'une photo de fiche/annonce d'un bien immobilier à Genève."""
+    address: str = Field(default="", description="Adresse complète (ex: Avenue de Miremont 30)")
+    quartier: str = Field(default="", description="Quartier — un de: Champel, Eaux-Vives, Miremont (vide si autre ou incertain)")
+    type_bien: str = Field(default="", description="Type — ex: Appartement, Duplex, Attique, Triplex")
+    surface: Optional[float] = Field(default=None, description="Surface habitable ou pondérée en m² (nombre uniquement)")
+    pieces: str = Field(default="", description="Nombre de pièces (ex: 5, 4.5)")
+    etage: str = Field(default="", description="Étage (ex: 3, RDC)")
+    annee: str = Field(default="", description="Année de construction ou de rénovation (ex: 2016)")
+    etat: str = Field(default="", description="État du bien (ex: Excellent, Rénové, À rafraîchir)")
+    balcon: Optional[float] = Field(default=None, description="Surface totale des extérieurs (balcon/loggia/terrasse) en m²")
+    parking_nb: Optional[int] = Field(default=None, description="Nombre de places de parking")
+    description: str = Field(default="", description="Description libre du bien (2-4 phrases max)")
+
+
+def _resize_image_for_vision(raw: bytes, max_edge: int = 1568) -> tuple[bytes, str]:
+    """Redimensionne + reencode l'image pour Claude Vision. Retourne (bytes, media_type)."""
+    from PIL import Image, ImageOps
+    img = Image.open(io.BytesIO(raw))
+    img = ImageOps.exif_transpose(img)
+    if img.mode not in ("RGB", "L"):
+        img = img.convert("RGB")
+    w, h = img.size
+    if max(w, h) > max_edge:
+        img.thumbnail((max_edge, max_edge))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    return buf.getvalue(), "image/jpeg"
+
+
+@app.route("/upload-photo", methods=["POST"])
+@login_required
+def upload_photo():
+    """Analyse une photo (fiche, capture d'écran, photo du bien) via Claude Vision et pré-remplit le formulaire."""
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return jsonify({"error": "Aucun fichier"}), 400
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return jsonify({"error": "Clé API Anthropic non configurée sur le serveur (ANTHROPIC_API_KEY manquante)."}), 500
+
+    try:
+        raw = file.read()
+        img_bytes, media_type = _resize_image_for_vision(raw)
+    except Exception as e:
+        return jsonify({"error": f"Image illisible (format non supporté ou fichier corrompu) : {e}"}), 400
+
+    b64 = base64.standard_b64encode(img_bytes).decode()
+
+    try:
+        from anthropic import Anthropic
+        client = Anthropic(api_key=api_key)
+        prompt = (
+            "Cette image montre une fiche, une annonce, une capture d'écran ou une photo d'un bien "
+            "immobilier à Genève. Extrais les champs demandés pour pré-remplir un formulaire "
+            "d'estimation LP. Règles :\n"
+            "- Pour 'quartier' : renvoie exactement 'Champel', 'Eaux-Vives' ou 'Miremont'. "
+            "Si le bien est ailleurs ou si tu n'es pas sûr, laisse vide.\n"
+            "- Pour 'surface' : donne un nombre en m² (ex: 120). Si 'surface pondérée' et 'surface "
+            "PPE' apparaissent, prends la pondérée.\n"
+            "- 'description' : 2 à 4 phrases en français, style sobre et factuel LP.\n"
+            "- Si un champ n'est pas visible, laisse-le vide (chaîne vide ou null).\n"
+            "- Ne devine pas : mieux vaut vide que faux."
+        )
+        response = client.messages.parse(
+            model="claude-opus-4-8",
+            max_tokens=1500,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
+                    {"type": "text", "text": prompt},
+                ],
+            }],
+            output_format=PhotoExtraction,
+        )
+        extracted = response.parsed_output
+    except Exception as e:
+        return jsonify({"error": f"Erreur lors de l'analyse par l'IA : {e}"}), 502
+
+    fields = extracted.model_dump()
+    # normaliser : convertir Nones en valeurs vides pour le JS front-end
+    fields = {k: ("" if v is None else v) for k, v in fields.items()}
+
+    # comparables locaux (comme le fait déjà /upload)
+    proposed, pool = ref_for(fields.get("quartier"), fields.get("address"))
+    if proposed:
         fields["prix_m2"] = round(proposed)
     fields["_refs"] = [{"adresse": r.adresse, "quartier": r.quartier,
                         "prix_m2": r.prix_m2, "annee": r.annee, "kind": r.kind} for r in pool]

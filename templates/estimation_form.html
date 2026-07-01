@@ -1,12 +1,114 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Estimation — saisie manuelle</h1>
-<p class="sub">Renseigne le bien. La valeur vénale et le prix de présentation se calculent à la génération.</p>
-<form method="post" action="{{ url_for('estimation_new') }}">
+<h1>Nouvelle estimation</h1>
+<p class="sub">Analyse une photo ou remplis directement les champs. La valeur vénale et le prix de présentation se calculent à la génération.</p>
+
+<div class="card" style="border-left:4px solid var(--accent)">
+  <div class="section-title" style="margin-top:0">📸 Analyser une photo (optionnel)</div>
+  <p style="color:var(--muted);margin:0 0 12px;font-size:13.5px">
+    Dépose une capture d'écran d'annonce (Immoscout24, Realadvisor…), une photo d'une fiche courtier, ou n'importe quelle image du bien. L'IA extrait automatiquement l'adresse, la surface, l'état, etc. et pré-remplit le formulaire ci-dessous.
+  </p>
+  <div id="photo-dropzone" style="border:2px dashed #cdb694;border-radius:12px;padding:22px;text-align:center;background:var(--bg2);cursor:pointer;transition:.15s">
+    <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none">
+    <div id="photo-cta" style="color:var(--muted)">
+      <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:4px">Cliquer pour choisir une image</div>
+      <div style="font-size:12px">ou glisser-déposer ici · JPG, PNG, WEBP, GIF · max 30 Mo</div>
+    </div>
+    <div id="photo-preview" style="display:none">
+      <img id="photo-thumb" alt="" style="max-height:180px;border-radius:8px;border:1px solid var(--line);margin-bottom:10px">
+      <div id="photo-name" style="font-size:13px;color:var(--muted)"></div>
+    </div>
+  </div>
+  <div id="photo-status" style="margin-top:12px;text-align:center;font-size:13.5px;min-height:20px"></div>
+</div>
+
+<form method="post" action="{{ url_for('estimation_new') }}" id="estim-form">
   {% include "_form_fields.html" %}
-  <div class="toolbar no-print">
-    <a class="btn secondary" href="{{ url_for('index') }}">← Glisser un fichier</a>
+  <div class="toolbar no-print" style="margin-top:16px">
+    <a class="btn secondary" href="{{ url_for('dashboard') }}">← Retour au tableau de bord</a>
     <button class="btn" type="submit">Générer le rapport →</button>
   </div>
 </form>
+
+{% block scripts %}
+<script>
+(function() {
+  const dz = document.getElementById('photo-dropzone');
+  const input = document.getElementById('photo-input');
+  const cta = document.getElementById('photo-cta');
+  const preview = document.getElementById('photo-preview');
+  const thumb = document.getElementById('photo-thumb');
+  const nameEl = document.getElementById('photo-name');
+  const status = document.getElementById('photo-status');
+  const form = document.getElementById('estim-form');
+
+  function setStatus(msg, color) {
+    status.textContent = msg || '';
+    status.style.color = color || 'var(--muted)';
+  }
+
+  function fillField(name, value) {
+    if (value === null || value === undefined || value === '') return;
+    const el = form.querySelector(`[name="${name}"]`);
+    if (!el) return;
+    // pour <select>, essayer de matcher la valeur en insensible à la casse
+    if (el.tagName === 'SELECT') {
+      const target = String(value).toLowerCase().trim();
+      for (const opt of el.options) {
+        if (opt.value.toLowerCase() === target || opt.textContent.toLowerCase().trim() === target) {
+          el.value = opt.value;
+          return;
+        }
+      }
+    } else {
+      el.value = value;
+    }
+  }
+
+  async function upload(file) {
+    if (!file) return;
+    // preview
+    thumb.src = URL.createObjectURL(file);
+    nameEl.textContent = file.name;
+    cta.style.display = 'none';
+    preview.style.display = 'block';
+    setStatus('⏳ Analyse par Claude Vision en cours (10 à 20 secondes)…', 'var(--accent2)');
+
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch('{{ url_for("upload_photo") }}', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setStatus('❌ ' + (data.error || 'Erreur inconnue'), '#c1502e');
+        return;
+      }
+      // pré-remplir les champs
+      const filled = [];
+      for (const [k, v] of Object.entries(data)) {
+        if (k.startsWith('_')) continue;
+        if (v === '' || v === null) continue;
+        fillField(k, v);
+        filled.push(k);
+      }
+      setStatus(`✅ ${filled.length} champ(s) pré-rempli(s). Vérifie et ajuste avant de générer le rapport.`, '#4a7c3a');
+    } catch (e) {
+      setStatus('❌ Erreur réseau : ' + e.message, '#c1502e');
+    }
+  }
+
+  dz.addEventListener('click', () => input.click());
+  input.addEventListener('change', (e) => upload(e.target.files[0]));
+
+  dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.style.borderColor = 'var(--accent)'; dz.style.background = '#faf3e8'; });
+  dz.addEventListener('dragleave', () => { dz.style.borderColor = '#cdb694'; dz.style.background = 'var(--bg2)'; });
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dz.style.borderColor = '#cdb694';
+    dz.style.background = 'var(--bg2)';
+    if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]);
+  });
+})();
+</script>
+{% endblock %}
 {% endblock %}
