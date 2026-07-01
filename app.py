@@ -186,46 +186,38 @@ def log_audit(action, est_id, description=""):
     db.session.commit()
 
 
+SHARED_EMAIL = "team@leonardproperties.local"
+
+
+def _shared_user():
+    """Compte partagé Leonard Properties : tout le monde se connecte dessus."""
+    u = User.query.filter_by(email=SHARED_EMAIL).first()
+    if not u:
+        u = User(email=SHARED_EMAIL, name="Leonard Properties")
+        u.set_password(os.environ.get("APP_PASSWORD", "LP-estimation"))
+        db.session.add(u)
+        db.session.commit()
+    return u
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user_id"):
         return redirect(url_for("dashboard"))
+    expected = os.environ.get("APP_PASSWORD", "LP-estimation")
     if request.method == "POST":
-        email = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password") or ""
-        user = User.query.filter_by(email=email).first()
-        if user and user.check_password(password):
-            session["user_id"] = user.id
+        if password == expected:
+            session["user_id"] = _shared_user().id
             return redirect(url_for("dashboard"))
-        flash("Email ou mot de passe incorrect.")
+        flash("Mot de passe incorrect.")
     return render_template("login.html", logo=get_logo_path())
 
 
-@app.route("/signup", methods=["GET", "POST"])
+@app.route("/signup")
 def signup():
-    if session.get("user_id"):
-        return redirect(url_for("dashboard"))
-    if request.method == "POST":
-        email = (request.form.get("email") or "").strip().lower()
-        password = request.form.get("password") or ""
-        confirm = request.form.get("confirm") or ""
-        name = (request.form.get("name") or "").strip()
-        if not email or "@" not in email:
-            flash("Email invalide.")
-        elif len(password) < 8:
-            flash("Le mot de passe doit faire au moins 8 caractères.")
-        elif password != confirm:
-            flash("Les mots de passe ne correspondent pas.")
-        elif User.query.filter_by(email=email).first():
-            flash("Un compte existe déjà pour cet email.")
-        else:
-            user = User(email=email, name=name or None)
-            user.set_password(password)
-            db.session.add(user)
-            db.session.commit()
-            session["user_id"] = user.id
-            return redirect(url_for("dashboard"))
-    return render_template("signup.html", logo=get_logo_path())
+    """Ancienne route d'inscription — désactivée, redirige vers login."""
+    return redirect(url_for("login"))
 
 
 @app.route("/logout")

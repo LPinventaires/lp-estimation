@@ -13,7 +13,11 @@
 </head>
 <body data-theme="{{ session.get('theme', 'light') }}">
 <header class="topbar no-print">
-  <a class="brand" href="{{ url_for('dashboard') }}">
+  <a class="brand" href="{{ url_for('dashboard') }}" style="display:flex;align-items:center;gap:10px">
+    {% set _logo = get_logo_path() %}
+    {% if _logo %}
+      <img src="{{ url_for('static', filename='uploads/' + _logo) }}" alt="LP" style="height:32px;width:auto;border-radius:4px">
+    {% endif %}
     LEONARD&nbsp;PROPERTIES
   </a>
   <nav>

@@ -34,10 +34,15 @@
 <body>
 <div class="landing">
   <header>
-    <div class="brand">LEONARD&nbsp;PROPERTIES</div>
+    <div class="brand" style="display:flex;align-items:center;gap:12px">
+      {% set _logo = get_logo_path() %}
+      {% if _logo %}
+        <img src="{{ url_for('static', filename='uploads/' + _logo) }}" alt="LP" style="height:36px;width:auto;border-radius:4px;background:#2a2520;padding:4px">
+      {% endif %}
+      LEONARD&nbsp;PROPERTIES
+    </div>
     <nav>
-      <a href="{{ url_for('login') }}">Connexion</a>
-      <a href="{{ url_for('signup') }}" class="btn">Créer un compte</a>
+      <a href="{{ url_for('login') }}" class="btn">Se connecter</a>
     </nav>
   </header>
 
@@ -49,8 +54,7 @@
       Renseignez adresse, quartier, surface et description : l'app calcule la valeur vénale à partir des comparables et vous produit un rapport.
     </p>
     <div class="cta">
-      <a href="{{ url_for('signup') }}" class="btn">Créer un compte</a>
-      <a href="{{ url_for('login') }}" class="btn secondary">Se connecter</a>
+      <a href="{{ url_for('login') }}" class="btn">Se connecter</a>
     </div>
   </section>
 
