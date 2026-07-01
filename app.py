@@ -164,13 +164,20 @@ def own_estimation_or_404(eid):
     return e
 
 
+DEFAULT_LOGO_FILENAME = "leonard-logo.png"
+
+
 def get_logo_path():
-    """Retourne le chemin du logo actuel ou None."""
+    """Retourne le chemin du logo actuel ou le logo par défaut Leonard Properties."""
     setting = Setting.query.filter_by(key="logo_filename").first()
     if setting and setting.value:
         full_path = os.path.join(app.config["UPLOAD_FOLDER"], setting.value)
         if os.path.exists(full_path):
             return setting.value
+    # Fallback : logo par défaut committé dans le repo
+    default_full = os.path.join(app.config["UPLOAD_FOLDER"], DEFAULT_LOGO_FILENAME)
+    if os.path.exists(default_full):
+        return DEFAULT_LOGO_FILENAME
     return None
 
 
