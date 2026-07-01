@@ -14,10 +14,6 @@
 <body data-theme="{{ session.get('theme', 'light') }}">
 <header class="topbar no-print">
   <a class="brand" href="{{ url_for('index') }}">
-    {% set logo = get_logo_path() %}
-    {% if logo %}
-      <img src="{{ url_for('static', filename='uploads/' + logo) }}" alt="LP" style="height:24px;width:auto;margin-right:8px;vertical-align:middle">
-    {% endif %}
     LEONARD&nbsp;PROPERTIES
   </a>
   <nav>
