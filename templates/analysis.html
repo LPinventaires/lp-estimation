@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Analyse rapide</h1>
+<p class="sub">Décrivez un bien immobilier et obtenez une estimation instantanée.</p>
+
+<div class="card">
+  <div class="field">
+    <label for="analysisText">Description du bien</label>
+    <textarea id="analysisText" rows="8" placeholder="Ex: Appartement 4 pièces à Champel, 115 m², excellent état, balcon, vue&#10;Ou: T3 Plainpalais 85 m², bon état, cuisine récente&#10;Ou: Studio centre-ville 38 m², neuf, très lumineux" style="font-family: monospace; font-size: 13px; width: 100%; box-sizing: border-box;"></textarea>
+  </div>
+  <button type="button" onclick="analyzeText()" class="btn" style="width: 100%; margin-top: 12px;">Analyser →</button>
+</div>
+
+<div id="resultContainer" style="display:none; margin-top: 24px;">
+  <div class="card">
+    <h2>Résultat</h2>
+    <div id="analysisResult"></div>
+  </div>
+</div>
+
+<script>
+async function analyzeText() {
+  const text = document.getElementById('analysisText').value.trim();
+
+  if (!text) {
+    alert('Entrez une description du bien');
+    return;
+  }
+
+  try {
+    const response = await fetch('/quick-analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      alert('Erreur: ' + data.error);
+      return;
+    }
+
+    displayResult(data);
+  } catch (err) {
+    alert('Erreur: ' + err.message);
+  }
+}
+
+function displayResult(data) {
+  const html = `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      <div>
+        <div style="color: var(--muted); font-size: 12px; margin-bottom: 4px;">ADRESSE</div>
+        <div style="font-size: 16px; font-weight: 500;">${data.address || '–'}</div>
+
+        <div style="color: var(--muted); font-size: 12px; margin-top: 16px; margin-bottom: 4px;">QUARTIER</div>
+        <div style="font-size: 14px;">${data.quartier || '–'}</div>
+
+        <div style="color: var(--muted); font-size: 12px; margin-top: 16px; margin-bottom: 4px;">SURFACE</div>
+        <div style="font-size: 14px;">${data.surface ? data.surface + ' m²' : '–'}</div>
+
+        <div style="color: var(--muted); font-size: 12px; margin-top: 16px; margin-bottom: 4px;">ÉTAT</div>
+        <div style="font-size: 14px;">${data.condition || '–'}</div>
+      </div>
+
+      <div style="border-left: 1px solid var(--line); padding-left: 24px;">
+        <div style="color: var(--muted); font-size: 12px; margin-bottom: 8px;">PRIX ESTIMÉ</div>
+        <div style="font-size: 32px; font-weight: bold; color: var(--accent); margin-bottom: 16px;">
+          CHF ${data.estimated_price ? data.estimated_price.toLocaleString('fr-CH') : '–'}
+        </div>
+
+        <div style="background: var(--bg2); padding: 12px; border-radius: 8px; margin-top: 16px;">
+          <div style="color: var(--muted); font-size: 11px; margin-bottom: 8px;">PRIX/M²</div>
+          <div style="font-size: 18px; font-weight: 500;">
+            CHF ${data.price_per_m2 ? data.price_per_m2.toLocaleString('fr-CH') : '–'}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    ${data.comparables && data.comparables.length > 0 ? `
+      <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line);">
+        <div style="color: var(--muted); font-size: 12px; margin-bottom: 12px;">COMPARABLES ANALYSÉS (${data.comparables.length})</div>
+        <div style="display: grid; gap: 8px;">
+          ${data.comparables.slice(0, 3).map(c => `
+            <div style="padding: 8px; background: var(--bg2); border-radius: 6px; font-size: 12px;">
+              <strong>${c.address}</strong> • ${c.surface}m² • CHF ${c.price?.toLocaleString('fr-CH') || '–'} (${c.price_per_m2?.toLocaleString('fr-CH') || '–'}/m²)
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+  `;
+
+  document.getElementById('analysisResult').innerHTML = html;
+  document.getElementById('resultContainer').style.display = 'block';
+}
+</script>
+{% endblock %}

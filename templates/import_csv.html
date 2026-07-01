@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Importer des estimations (CSV)</h1>
+<p class="sub">Uploadez un fichier CSV pour importer plusieurs biens à la fois.</p>
+
+<div class="card" style="margin-bottom: 24px;">
+  <h2>Format CSV attendu</h2>
+  <p style="margin-bottom: 12px;">Votre fichier doit avoir les colonnes suivantes (vous pouvez en ignorer):</p>
+  <code style="display: block; background: var(--bg2); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; line-height: 1.8;">
+address,quartier,type_bien,surface,pieces,etage,annee,etat,balcon,balcon_pond,parking_nb,parking_val,prix_m2,marge,description,atouts,inconvenients,courtier,notes
+  </code>
+  <p style="margin-top: 12px; color: var(--muted); font-size: 13px;">Exemple:</p>
+  <code style="display: block; background: var(--bg2); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 11px; line-height: 1.6;">
+"Avenue de Champel 64","Champel","Appartement",115,"4P","2ème","2020","Excellent","8","0.5","1","25000","21000","0.07","Bien situé","Parking","",""
+  </code>
+</div>
+
+<div class="card">
+  <form method="post" enctype="multipart/form-data">
+    <div class="field">
+      <label for="file">Fichier CSV</label>
+      <input type="file" id="file" name="file" accept=".csv" required>
+      <div class="hint">Fichier .csv - Encodage UTF-8</div>
+    </div>
+    <button type="submit" class="btn" style="width: 100%; margin-top: 12px;">Importer</button>
+  </form>
+</div>
+
+<div class="card" style="margin-top: 24px; background: var(--bg2);">
+  <h3 style="margin-bottom: 12px;">💡 Conseil</h3>
+  <p style="margin-bottom: 8px; font-size: 14px;">Vous pouvez exporter toutes vos estimations en un seul CSV en cliquant sur <strong>Actions</strong> → <strong>Exporter tous</strong> dans l'historique, puis le modifier et le réimporter.</p>
+</div>
+{% endblock %}

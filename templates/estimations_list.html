@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Historique des estimations</h1>
+<p class="sub">Consultez, recherchez et gérez vos estimations.</p>
+
+<div class="card" style="margin-bottom: 24px;">
+  <form method="get" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end;">
+    <div class="field">
+      <label for="q">Recherche (adresse)</label>
+      <input type="text" id="q" name="q" value="{{ current_q }}" placeholder="Champel, Pâquis...">
+    </div>
+    <div class="field">
+      <label for="quartier">Quartier</label>
+      <select id="quartier" name="quartier">
+        <option value="">— Tous —</option>
+        {% for qrt in quartiers %}
+        <option value="{{ qrt }}" {% if qrt == current_quartier %}selected{% endif %}>{{ qrt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div></div>
+    <button type="submit" class="btn" style="width: 100%;">Chercher</button>
+  </form>
+</div>
+
+{% if estimations %}
+<div class="card">
+  <table style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr style="border-bottom: 1px solid var(--line);">
+        <th style="text-align: left; padding: 12px 0; font-weight: 600; color: var(--muted); font-size: 12px;">ADRESSE</th>
+        <th style="text-align: left; padding: 12px 0; font-weight: 600; color: var(--muted); font-size: 12px;">QUARTIER</th>
+        <th style="text-align: right; padding: 12px 0; font-weight: 600; color: var(--muted); font-size: 12px;">SURFACE</th>
+        <th style="text-align: right; padding: 12px 0; font-weight: 600; color: var(--muted); font-size: 12px;">PRIX ESTIMÉ</th>
+        <th style="text-align: right; padding: 12px 0; font-weight: 600; color: var(--muted); font-size: 12px;">PRIX/M²</th>
+        <th style="text-align: center; padding: 12px 0; font-weight: 600; color: var(--muted); font-size: 12px;">ACTIONS</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for est in estimations %}
+      <tr style="border-bottom: 1px solid var(--line);">
+        <td style="padding: 12px 0;"><strong>{{ est.address }}</strong></td>
+        <td style="padding: 12px 0;">{{ est.quartier }}</td>
+        <td style="text-align: right; padding: 12px 0;">{{ est.surface|m2 }} m²</td>
+        <td style="text-align: right; padding: 12px 0; font-weight: 500;">CHF {{ est.prix_presentation|chf }}</td>
+        <td style="text-align: right; padding: 12px 0;">CHF {{ est.prix_m2|chf }}/m²</td>
+        <td style="text-align: center; padding: 12px 0;">
+          <a href="{{ url_for('estimation_report', eid=est.id) }}" style="font-size: 12px; color: var(--link);">Voir</a>
+          <form method="post" action="{{ url_for('estimation_clone', eid=est.id) }}" style="display: inline;">
+            <button type="submit" style="background: none; border: none; color: var(--link); font-size: 12px; cursor: pointer; text-decoration: underline;">Dupliquer</button>
+          </form>
+          <form method="post" action="{{ url_for('estimation_delete', eid=est.id) }}" style="display: inline;" onsubmit="return confirm('Supprimer?');">
+            <button type="submit" style="background: none; border: none; color: #c33; font-size: 12px; cursor: pointer; text-decoration: underline;">Supprimer</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 48px 24px; color: var(--muted);">
+  Aucune estimation trouvée.
+</div>
+{% endif %}
+{% endblock %}

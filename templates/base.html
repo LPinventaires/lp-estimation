@@ -5,8 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}LP · Estimation hédoniste{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script>
+  // Dark mode init
+  const theme = localStorage.getItem('theme') || 'light';
+  if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+</script>
 </head>
-<body>
+<body data-theme="{{ session.get('theme', 'light') }}">
 <header class="topbar no-print">
   <a class="brand" href="{{ url_for('index') }}">
     {% set logo = get_logo_path() %}
@@ -17,10 +22,24 @@
   </a>
   <nav>
     <a href="{{ url_for('index') }}">Estimations</a>
+    <a href="{{ url_for('analysis') }}">Analyse rapide</a>
+    <a href="{{ url_for('estimations_list') }}">Historique</a>
+    <a href="{{ url_for('dashboard') }}">Tableau de bord</a>
     <a href="{{ url_for('references') }}">Références prix/m²</a>
+    <a href="{{ url_for('import_csv') }}">Importer CSV</a>
     <a href="{{ url_for('settings') }}">Paramètres</a>
+    <a href="javascript:toggleTheme()" title="Dark/Light mode" style="cursor:pointer;">🌙</a>
     <a href="{{ url_for('logout') }}" class="ghost">Quitter</a>
   </nav>
+  <script>
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      fetch(`/theme/${next}`);
+    }
+  </script>
 </header>
 {% with msgs = get_flashed_messages() %}
   {% if msgs %}<div class="flash no-print">{{ msgs|join(' ') }}</div>{% endif %}

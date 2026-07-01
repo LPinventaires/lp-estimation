@@ -1,7 +1,17 @@
 :root{
+  --bg:#f5f0e8; --bg2:#faf7f1; --card:#fef9f4; --line:#e8e2d8;
+  --ink:#2a2520; --muted:#8b8477; --accent:#d4a574; --accent2:#c9976b;
+  --good:#7a9d6f; --danger:#c85858; --radius:12px;
+}
+[data-theme="dark"]{
   --bg:#18150f; --bg2:#201c14; --card:#252017; --line:#3a3327;
   --ink:#ece8e0; --muted:#a59a87; --accent:#c9a76b; --accent2:#d6bd91;
   --good:#8fbf8b; --danger:#d99a8a; --radius:12px;
+}
+[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f5f5f5; --card:#fafafa; --line:#e5e5e5;
+  --ink:#1a1a1a; --muted:#666666; --accent:#8b7355; --accent2:#a89968;
+  --good:#6b9966; --danger:#b85858; --radius:12px;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -13,13 +23,13 @@ h1{font-size:24px;font-weight:700;margin:0 0 4px;letter-spacing:-.01em}
 h2{font-size:16px;color:var(--ink);margin:26px 0 10px;font-weight:600}
 .sub{color:var(--muted);margin:0 0 22px}
 .muted{color:var(--muted)}
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:15px 26px;background:#120f0a;border-bottom:1px solid var(--line)}
-.brand{color:#fff;font-weight:700;letter-spacing:.16em;font-size:14px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:15px 26px;background:#fdf9f3;border-bottom:1px solid var(--line)}
+.brand{color:#2a2520;font-weight:700;letter-spacing:.16em;font-size:14px}
 .topbar nav{display:flex;gap:22px;align-items:center}
 .topbar nav a{color:var(--muted);font-size:14px}
-.topbar nav a:hover{color:#fff}
+.topbar nav a:hover{color:var(--accent)}
 .topbar nav a.ghost{color:#6b7280}
-.flash{max-width:1040px;margin:16px auto 0;padding:11px 16px;background:#3a2f2c;border:1px solid #5b4641;color:#e7c3bd;border-radius:8px}
+.flash{max-width:1040px;margin:16px auto 0;padding:11px 16px;background:#fde8d8;border:1px solid #e8c4a8;color:#8b5a2b;border-radius:8px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;margin-bottom:18px}
 .btn{display:inline-block;background:var(--accent);color:#1b1d22;font-weight:600;padding:10px 18px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-family:inherit}
 .btn:hover{filter:brightness(1.07);color:#1b1d22}
@@ -48,7 +58,7 @@ tfoot td{font-weight:700;color:#fff;border-top:1px solid var(--line)}
 .field{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
 .field label{font-weight:600;font-size:13px;color:#cdd2da}
 .field .hint{color:var(--muted);font-size:12px;font-weight:400}
-input,select,textarea{font-family:inherit;font-size:14px;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:#1b1810;color:var(--ink)}
+input,select,textarea{font-family:inherit;font-size:14px;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:#fef9f4;color:var(--ink)}
 input::placeholder,textarea::placeholder{color:#6b7280}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(201,167,107,.18)}
 .section-title{color:var(--accent);font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 12px;border-bottom:1px solid var(--line);padding-bottom:8px}
@@ -58,17 +68,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 .inline{display:inline}
 .right{text-align:right}
 /* LOGIN — esprit LP inventaire (brun très foncé) */
-.login-page{background:radial-gradient(130% 120% at 50% -10%,#2a2418,#18150f 60%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.login-page{background:radial-gradient(130% 120% at 50% -10%,#f9f5f0,#f0e8dc 60%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .login-card{background:transparent;border:none;border-radius:0;padding:0;width:320px;text-align:center;box-shadow:none}
 .login-logo{width:84px;height:84px;border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;
   border:2px solid var(--accent);color:var(--accent);font-weight:700;letter-spacing:.04em;font-size:26px;
-  background:#1f1b13;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.1)}
 .login-logo img{width:100%;height:100%;object-fit:cover;border-radius:50%}
-.login-brand{font-weight:600;letter-spacing:.22em;color:#f3efe6;font-size:18px;text-align:center}
+.login-brand{font-weight:600;letter-spacing:.22em;color:#2a2520;font-size:18px;text-align:center}
 .login-tag{color:var(--muted);text-align:center;margin:6px 0 26px;font-size:13px;letter-spacing:.02em}
 .login-card .field{text-align:left}
 .login-card .field label{color:var(--muted);font-weight:500;letter-spacing:.02em}
-.login-card input{background:#1f1b13;border-color:#3a3327;text-align:center;letter-spacing:.2em}
+.login-card input{background:#fff;border-color:#e8e2d8;text-align:center;letter-spacing:.2em;color:var(--ink)}
 .login-foot{color:#6a604f;font-size:12px;margin-top:22px;letter-spacing:.12em;text-transform:uppercase}
 /* REPORT (clair, pour impression) */
 .report-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}

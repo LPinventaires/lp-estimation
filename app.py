@@ -1,8 +1,10 @@
 import os
+import csv
+import io
 from datetime import datetime
 from functools import wraps
 from flask import (Flask, render_template, request, redirect, url_for,
-                   session, flash, jsonify)
+                   session, flash, jsonify, send_file)
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 
@@ -63,6 +65,7 @@ class Estimation(db.Model):
     atouts = db.Column(db.Text)
     inconvenients = db.Column(db.Text)
     courtier = db.Column(db.String(120))
+    notes = db.Column(db.Text, default="")
 
     @property
     def val_principale(self):
@@ -92,6 +95,25 @@ class Setting(db.Model):
     value = db.Column(db.String(500))
 
 
+class AuditLog(db.Model):
+    """Historique des actions pour audit."""
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    action = db.Column(db.String(100))  # created, updated, deleted, cloned
+    estimation_id = db.Column(db.Integer, db.ForeignKey('estimation.id'))
+    description = db.Column(db.Text)
+
+
+class PriceAlert(db.Model):
+    """Alertes pour changements de prix par quartier."""
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    quartier = db.Column(db.String(120))
+    previous_price = db.Column(db.Float)
+    new_price = db.Column(db.Float)
+    triggered = db.Column(db.Boolean, default=False)
+
+
 # ----------------------- AUTH -----------------------
 def login_required(f):
     @wraps(f)
@@ -115,6 +137,13 @@ def get_logo_path():
 def allowed_file(filename):
     """Vérifie si le fichier a une extension autorisée."""
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def log_audit(action, est_id, description=""):
+    """Enregistre une action dans l'audit log."""
+    log = AuditLog(action=action, estimation_id=est_id, description=description)
+    db.session.add(log)
+    db.session.commit()
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -335,6 +364,297 @@ def references_delete(rid):
     db.session.delete(r)
     db.session.commit()
     return redirect(url_for("references"))
+
+
+@app.route("/analysis")
+@login_required
+def analysis():
+    """Page d'analyse rapide avec texte libre."""
+    return render_template("analysis.html")
+
+
+@app.route("/quick-analyze", methods=["POST"])
+@login_required
+def quick_analyze():
+    """Analyse un texte libre et retourne une estimation complète."""
+    data = request.get_json() or {}
+    text = data.get("text", "").strip()
+
+    if not text:
+        return jsonify({"error": "Texte vide"}), 400
+
+    # Extraire les données du texte
+    fields = extract_fields(text)
+
+    # Récupérer les références prix
+    proposed, pool = ref_for(fields.get("quartier"), fields.get("address"))
+    if proposed and not fields.get("prix_m2"):
+        fields["prix_m2"] = round(proposed)
+
+    # Construire l'objet Estimation
+    def num(v, d=0.0):
+        try:
+            if isinstance(v, (int, float)):
+                return float(v)
+            return float(str(v or d).replace("'", "").replace(" ", "").replace(",", ".") or d)
+        except (ValueError, TypeError):
+            return d
+
+    est = Estimation(
+        address=fields.get("address", ""),
+        quartier=fields.get("quartier", ""),
+        type_bien=fields.get("type_bien", ""),
+        surface=num(fields.get("surface")),
+        pieces=fields.get("pieces", ""),
+        etage=fields.get("etage", ""),
+        annee=fields.get("annee", ""),
+        etat=fields.get("etat", ""),
+        balcon=num(fields.get("balcon")),
+        balcon_pond=num(fields.get("balcon_pond", 0.5), 0.5),
+        parking_nb=int(num(fields.get("parking_nb"))),
+        parking_val=num(fields.get("parking_val")),
+        prix_m2=num(fields.get("prix_m2")),
+        marge=num(fields.get("marge", 0.07), 0.07),
+        description=fields.get("description", "")
+    )
+
+    # Retourner le résultat
+    sold = [r for r in pool if r.kind in ("sold", "retenu")]
+    return jsonify({
+        "address": est.address,
+        "quartier": est.quartier,
+        "surface": est.surface,
+        "condition": est.etat,
+        "estimated_price": int(est.prix_presentation),
+        "price_per_m2": int(est.prix_m2) if est.prix_m2 else 0,
+        "comparables": [
+            {
+                "address": r.adresse,
+                "surface": est.surface,
+                "price": int(est.prix_presentation),
+                "price_per_m2": int(r.prix_m2)
+            } for r in sold[:3]
+        ]
+    })
+
+
+# ----------------------- ESTIMATIONS HISTORIQUE & GESTION -----------------------
+@app.route("/estimations")
+@login_required
+def estimations_list():
+    """Liste toutes les estimations avec recherche et filtres."""
+    q = request.args.get("q", "").strip()
+    quartier = request.args.get("quartier", "").strip()
+
+    query = Estimation.query
+    if q:
+        query = query.filter(
+            db.or_(
+                Estimation.address.ilike(f"%{q}%"),
+                Estimation.quartier.ilike(f"%{q}%")
+            )
+        )
+    if quartier:
+        query = query.filter_by(quartier=quartier)
+
+    estimations = query.order_by(Estimation.created_at.desc()).all()
+    return render_template("estimations_list.html", estimations=estimations,
+                         quartiers=QUARTIERS, current_q=q, current_quartier=quartier)
+
+
+@app.route("/estimation/<int:eid>/clone", methods=["POST"])
+@login_required
+def estimation_clone(eid):
+    """Clone une estimation existante."""
+    e = Estimation.query.get_or_404(eid)
+    new_e = Estimation(
+        address=e.address, quartier=e.quartier, type_bien=e.type_bien,
+        surface=e.surface, pieces=e.pieces, etage=e.etage, annee=e.annee,
+        etat=e.etat, balcon=e.balcon, balcon_pond=e.balcon_pond,
+        parking_nb=e.parking_nb, parking_val=e.parking_val,
+        prix_m2=e.prix_m2, marge=e.marge, description=e.description,
+        atouts=e.atouts, inconvenients=e.inconvenients, courtier=e.courtier,
+        notes=f"Copie de {e.id}"
+    )
+    db.session.add(new_e)
+    db.session.commit()
+    log_audit("cloned", new_e.id, f"Clonée de {e.id}")
+    return redirect(url_for("estimation_report", eid=new_e.id))
+
+
+@app.route("/estimation/<int:eid>/notes", methods=["POST"])
+@login_required
+def estimation_notes(eid):
+    """Éditer les notes d'une estimation."""
+    e = Estimation.query.get_or_404(eid)
+    e.notes = request.form.get("notes", "")
+    db.session.commit()
+    log_audit("updated_notes", e.id)
+    flash("Notes mises à jour.")
+    return redirect(url_for("estimation_report", eid=e.id))
+
+
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    """Tableau de bord avec statistiques."""
+    total = Estimation.query.count()
+    by_quartier = db.session.query(
+        Estimation.quartier,
+        db.func.count(Estimation.id),
+        db.func.avg(Estimation.prix_m2),
+        db.func.avg(Estimation.prix_presentation)
+    ).group_by(Estimation.quartier).all()
+
+    recent = Estimation.query.order_by(Estimation.created_at.desc()).limit(10).all()
+
+    logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(20).all()
+
+    return render_template("dashboard.html", total=total, by_quartier=by_quartier,
+                         recent=recent, logs=logs)
+
+
+@app.route("/estimation/<int:eid>/export.pdf")
+@login_required
+def estimation_export_pdf(eid):
+    """Exporte une estimation en PDF (via HTML printable)."""
+    e = Estimation.query.get_or_404(eid)
+    _, pool = ref_for(e.quartier, e.address)
+    sold = [r for r in pool if r.kind in ("sold", "retenu")]
+    forsale = [r for r in pool if r.kind == "forsale"]
+    html = build_report(e, sold, forsale)
+
+    return render_template("export_pdf.html", e=e, report_html=html)
+
+
+@app.route("/import-csv", methods=["GET", "POST"])
+@login_required
+def import_csv():
+    """Importe des estimations depuis un fichier CSV."""
+    if request.method == "POST":
+        if "file" not in request.files:
+            flash("Aucun fichier sélectionné.")
+            return redirect(url_for("import_csv"))
+
+        file = request.files["file"]
+        if not file.filename.endswith(".csv"):
+            flash("Veuillez uploader un fichier CSV.")
+            return redirect(url_for("import_csv"))
+
+        try:
+            stream = io.StringIO(file.read().decode("utf-8"))
+            reader = csv.DictReader(stream)
+
+            count = 0
+            for row in reader:
+                def num(k, d=0.0):
+                    try:
+                        v = row.get(k, "")
+                        return float(str(v).replace("'", "").replace(",", ".") or d)
+                    except (ValueError, TypeError):
+                        return d
+
+                est = Estimation(
+                    address=row.get("address", ""),
+                    quartier=row.get("quartier", ""),
+                    type_bien=row.get("type_bien", ""),
+                    surface=num("surface"),
+                    pieces=row.get("pieces", ""),
+                    etage=row.get("etage", ""),
+                    annee=row.get("annee", ""),
+                    etat=row.get("etat", ""),
+                    balcon=num("balcon"),
+                    balcon_pond=num("balcon_pond", 0.5),
+                    parking_nb=int(num("parking_nb")),
+                    parking_val=num("parking_val"),
+                    prix_m2=num("prix_m2"),
+                    marge=num("marge", 0.07),
+                    description=row.get("description", ""),
+                    atouts=row.get("atouts", ""),
+                    inconvenients=row.get("inconvenients", ""),
+                    courtier=row.get("courtier", ""),
+                    notes=row.get("notes", "")
+                )
+                db.session.add(est)
+                count += 1
+
+            db.session.commit()
+            flash(f"{count} estimations importées avec succès!")
+            return redirect(url_for("estimations_list"))
+        except Exception as e:
+            flash(f"Erreur lors de l'import: {str(e)}")
+            return redirect(url_for("import_csv"))
+
+    return render_template("import_csv.html")
+
+
+@app.route("/theme/<theme>")
+@login_required
+def set_theme(theme):
+    """Définit le thème (dark/light)."""
+    if theme in ["dark", "light"]:
+        session["theme"] = theme
+    return redirect(request.referrer or url_for("index"))
+
+
+@app.route("/estimation/<int:eid>/export.csv")
+@login_required
+def estimation_export_csv(eid):
+    """Exporte une estimation en CSV."""
+    e = Estimation.query.get_or_404(eid)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Propriété", "Valeur"])
+    writer.writerow(["Adresse", e.address])
+    writer.writerow(["Quartier", e.quartier])
+    writer.writerow(["Type de bien", e.type_bien])
+    writer.writerow(["Surface", e.surface])
+    writer.writerow(["Pièces", e.pieces])
+    writer.writerow(["État", e.etat])
+    writer.writerow(["Balcon", e.balcon])
+    writer.writerow(["Parking", e.parking_nb])
+    writer.writerow(["Prix/m²", e.prix_m2])
+    writer.writerow(["Valeur estimée", e.prix_presentation])
+    writer.writerow(["Notes", e.notes])
+
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode("utf-8")),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=f"estimation_{e.id}.csv"
+    )
+
+
+@app.route("/export-all.csv")
+@login_required
+def export_all_csv():
+    """Exporte toutes les estimations en CSV."""
+    estimations = Estimation.query.all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "address", "quartier", "type_bien", "surface", "pieces", "etage", "annee",
+        "etat", "balcon", "balcon_pond", "parking_nb", "parking_val", "prix_m2",
+        "marge", "description", "atouts", "inconvenients", "courtier", "notes"
+    ])
+
+    for e in estimations:
+        writer.writerow([
+            e.address, e.quartier, e.type_bien, e.surface, e.pieces, e.etage, e.annee,
+            e.etat, e.balcon, e.balcon_pond, e.parking_nb, e.parking_val, e.prix_m2,
+            e.marge, e.description, e.atouts, e.inconvenients, e.courtier, e.notes
+        ])
+
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode("utf-8")),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=f"estimations_all.csv"
+    )
 
 
 # ----------------------- FILTRES ET CONTEXTE -----------------------

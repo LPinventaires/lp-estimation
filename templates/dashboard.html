@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Tableau de bord</h1>
+<p class="sub">Statistiques et vue d'ensemble de vos estimations.</p>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+  <div class="card">
+    <div style="color: var(--muted); font-size: 12px; margin-bottom: 8px;">ESTIMATIONS TOTAL</div>
+    <div style="font-size: 32px; font-weight: bold; color: var(--accent);">{{ total }}</div>
+  </div>
+
+  <div class="card">
+    <div style="color: var(--muted); font-size: 12px; margin-bottom: 8px;">PRIX MOYEN</div>
+    <div style="font-size: 32px; font-weight: bold;">
+      {% set avg_price = (by_quartier|map(attribute=3)|sum / (by_quartier|length or 1))|int %}
+      CHF {{ avg_price|chf }}
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="color: var(--muted); font-size: 12px; margin-bottom: 8px;">PRIX/M² MOYEN</div>
+    <div style="font-size: 32px; font-weight: bold;">
+      {% set avg_pm2 = (by_quartier|map(attribute=2)|sum / (by_quartier|length or 1))|int %}
+      CHF {{ avg_pm2|chf }}
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+  <h2>Par quartier</h2>
+  <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+    <thead>
+      <tr style="border-bottom: 1px solid var(--line);">
+        <th style="text-align: left; padding: 8px 0; font-weight: 600; color: var(--muted); font-size: 12px;">QUARTIER</th>
+        <th style="text-align: right; padding: 8px 0; font-weight: 600; color: var(--muted); font-size: 12px;">COUNT</th>
+        <th style="text-align: right; padding: 8px 0; font-weight: 600; color: var(--muted); font-size: 12px;">PRIX/M² MOY</th>
+        <th style="text-align: right; padding: 8px 0; font-weight: 600; color: var(--muted); font-size: 12px;">PRIX MOYEN</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for qrt, count, avg_pm2, avg_price in by_quartier %}
+      <tr style="border-bottom: 1px solid var(--line);">
+        <td style="padding: 8px 0;"><strong>{{ qrt }}</strong></td>
+        <td style="text-align: right; padding: 8px 0;">{{ count }}</td>
+        <td style="text-align: right; padding: 8px 0;">CHF {{ (avg_pm2|int)|chf }}</td>
+        <td style="text-align: right; padding: 8px 0;">CHF {{ (avg_price|int)|chf }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+  <div class="card">
+    <h2 style="margin-top: 0;">Récentes</h2>
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+      {% for est in recent %}
+      <div style="padding: 12px; background: var(--bg2); border-radius: 8px; font-size: 13px;">
+        <div style="font-weight: 500;">{{ est.address }}</div>
+        <div style="color: var(--muted); font-size: 12px;">{{ est.quartier }} • {{ est.surface|m2 }} m² • CHF {{ est.prix_presentation|chf }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top: 0;">Historique (audit)</h2>
+    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+      {% for log in logs %}
+      <div style="padding: 8px; border-bottom: 1px solid var(--line); font-size: 12px;">
+        <strong>{{ log.action }}</strong> • Est. {{ log.estimation_id }}<br>
+        <span style="color: var(--muted);">{{ log.created_at.strftime('%d/%m %H:%M') }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
