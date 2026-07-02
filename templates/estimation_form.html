@@ -110,7 +110,7 @@
     analyzeBtn.disabled = true;
     const original = analyzeBtn.textContent;
     analyzeBtn.textContent = 'Analyse en cours…';
-    setStatus('⏳ Claude Opus 4.8 analyse la description (5-15 s)…', 'var(--accent2)');
+    setStatus('⏳ Claude Fable 5 analyse la description (5-15 s)…', 'var(--accent2)');
     try {
       const res = await fetch('{{ url_for("analyze_text") }}', {
         method: 'POST',

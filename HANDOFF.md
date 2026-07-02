@@ -43,7 +43,7 @@ Le site est un **outil interne**, protégé par un mot de passe partagé pour to
 | Variable | À quoi ça sert | Comment la voir / rotater |
 |---|---|---|
 | `APP_PASSWORD` | Mot de passe partagé pour se connecter au site | Dashboard Railway → service `web` → onglet **Variables** → cliquer l'œil 👁 pour révéler. À la date du mémo : `Champel26`. |
-| `ANTHROPIC_API_KEY` | Clé API pour Claude Opus 4.8 (extraction depuis texte/photo + génération de descriptions) | Générée sur https://console.anthropic.com/settings/keys. Si compromise : révoque sur console.anthropic.com, crée une nouvelle, mets-la dans la variable Railway. |
+| `ANTHROPIC_API_KEY` | Clé API pour Claude Fable 5 (extraction depuis texte/photo + génération de descriptions) | Générée sur https://console.anthropic.com/settings/keys. Si compromise : révoque sur console.anthropic.com, crée une nouvelle, mets-la dans la variable Railway. |
 | `SECRET_KEY` | Clé Flask pour signer les cookies de session | Chaîne aléatoire de 48+ caractères. Si rotée, tous les utilisateurs sont déconnectés. Non critique. |
 | `DATABASE_URL` | Chaîne de connexion Postgres | **Injectée automatiquement** par Railway (référence au service Postgres). Ne pas y toucher. |
 
@@ -105,7 +105,7 @@ Railway détecte le push GitHub, rebuild le conteneur (Python 3.13, `pip install
 | **pdfminer.six** | 20231228 | Extraction texte des PDF déposés |
 | **openpyxl** | Dev-only | Consolidation des xlsx Dropbox (script one-shot) |
 | **Postgres** | 15+ (via Railway) | Base de données |
-| **Claude Opus 4.8** | `claude-opus-4-8` | Modèle IA utilisé pour extraction et rédaction |
+| **Claude Fable 5** | `claude-fable-5` | Modèle IA utilisé pour extraction et rédaction (le plus capable d'Anthropic à ce jour) |
 
 Toutes les dépendances Python sont dans `requirements.txt` à la racine du repo.
 
@@ -231,7 +231,7 @@ Descriptions multi-lignes. Ces 3 comparables apparaissent **en priorité** dans 
 
 ## 9. Comment fonctionne l'IA sur le site
 
-### Claude Opus 4.8 est utilisé pour trois choses
+### Claude Fable 5 est utilisé pour trois choses
 
 **A. Extraction de champs depuis un texte libre** — endpoint `/analyze-text`
 Le courtier colle une phrase style *"Avenue de Champel 64, appartement duplex de 274 m² rénové 2024, 5.5 pièces, 3e étage…"*. Claude renvoie un JSON structuré avec adresse, quartier, type, surface, etc. — via le schéma Pydantic `PhotoExtraction`.
@@ -243,11 +243,16 @@ Même chose mais Claude Vision analyse l'image (redimensionnée à 1568px max c�
 Si le champ description est vide au moment de générer, Claude rédige un paragraphe de 3–5 phrases dans le style sobre et factuel LP, à partir des autres champs. Le prompt inclut des atouts prédéfinis par quartier (Champel, Eaux-Vives, Miremont).
 
 ### Coûts approximatifs
-- Extraction texte : ~0.01 USD par appel
-- Extraction photo : ~0.01–0.02 USD par appel
-- Rédaction description : ~0.005 USD par appel
+Le site tourne sur **Claude Fable 5** (modèle le plus capable d'Anthropic à ce jour, tarif $10/$50 par MTok). Ordres de grandeur :
 
-Un usage quotidien de 10 estimations coûte environ **0.15–0.30 USD/jour** soit 5–10 USD/mois. À surveiller sur https://console.anthropic.com/settings/usage.
+- Extraction texte : ~0.02 USD par appel
+- Extraction photo : ~0.02–0.04 USD par appel
+- Rédaction description auto : ~0.01 USD par appel
+- Génération du rapport complet : ~0.05–0.10 USD par estimation (une fois, puis mis en cache en base)
+
+Un usage quotidien de 10 estimations coûte environ **0.5–1.0 USD/jour** soit **15–25 USD/mois**. À surveiller sur https://console.anthropic.com/settings/usage.
+
+Si tu veux baisser les coûts sans perdre trop en qualité, tu peux repasser sur `claude-opus-4-8` (moitié prix) ou `claude-sonnet-5` (encore plus abordable) — il suffit de changer les 3 occurrences de `model="claude-fable-5"` dans `app.py`.
 
 ### Que se passe-t-il si la clé Anthropic est absente ou révoquée ?
 - Les endpoints d'analyse renvoient une erreur claire à l'utilisateur ("Clé API Anthropic non configurée")
@@ -366,7 +371,7 @@ Le projet a démarré en mai 2026 avec un formulaire manuel classique et un mot 
 2. **Début juillet 2026** — refonte majeure :
    - Comptes individuels (essai) puis retour au mot de passe partagé
    - Refonte "luxe" du design (serif Playfair, palette or/beige/brun, cartes)
-   - Analyse texte + photo par Claude Opus 4.8
+   - Analyse texte + photo par Claude Fable 5
    - Rédaction auto de la description
    - Section "Classeur" (archive par quartier/type)
    - Ajout de tous les quartiers de Genève (~46)
