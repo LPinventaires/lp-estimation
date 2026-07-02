@@ -452,6 +452,57 @@ def upload_photo():
     return jsonify(fields)
 
 
+QUARTIER_ATOUTS = {
+    "Champel": "quartier résidentiel prisé de la rive gauche, écoles internationales et hôpitaux à proximité, ambiance calme et verte",
+    "Eaux-Vives": "quartier vivant entre le lac et le parc La Grange, commerces et restaurants nombreux, très bien desservi",
+    "Miremont": "secteur résidentiel de Champel-Miremont, calme, familial, vues sur la ville et proximité des parcs",
+}
+
+
+def _generate_lp_description(fields: dict) -> str:
+    """Génère un paragraphe LP (3-5 phrases) via Claude Opus 4.8. Retourne '' si l'API n'est pas dispo."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return ""
+    try:
+        from anthropic import Anthropic
+        client = Anthropic(api_key=api_key)
+        atouts_quartier = QUARTIER_ATOUTS.get(fields.get("quartier") or "", "")
+        prompt = f"""Rédige un paragraphe de 3 à 5 phrases décrivant ce bien immobilier dans le style sobre, factuel et élégant de Leonard Properties (courtier à Genève).
+
+Consignes :
+- Français impeccable, phrases complètes, ton professionnel LP.
+- Évite les superlatifs vides ("magnifique", "exceptionnel", "unique") sauf s'ils sont justifiés par les faits.
+- Décris le bien, mentionne le quartier et ses atouts, cite l'état/année si pertinent.
+- Ne mentionne pas de champ vide ou inconnu.
+- Pas de listes à puces, pas d'en-têtes, uniquement un ou deux paragraphes courts.
+- N'invente rien qui ne soit pas dans les données ci-dessous.
+
+Bien à décrire :
+- Adresse : {fields.get('address') or 'non renseignée'}
+- Quartier : {fields.get('quartier') or 'non renseigné'}{f' ({atouts_quartier})' if atouts_quartier else ''}
+- Type : {fields.get('type_bien') or 'non renseigné'}
+- Surface : {fields.get('surface') or '?'} m²
+- Pièces : {fields.get('pieces') or '?'}
+- Étage : {fields.get('etage') or '?'}
+- Année : {fields.get('annee') or '?'}
+- État : {fields.get('etat') or '?'}
+- Extérieurs : {fields.get('balcon') or 0} m²
+- Parkings : {fields.get('parking_nb') or 0}
+
+Réponds uniquement avec le paragraphe (pas de préambule, pas de guillemets)."""
+        response = client.messages.create(
+            model="claude-opus-4-8",
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = "".join(b.text for b in response.content if b.type == "text").strip()
+        return text
+    except Exception as e:
+        app.logger.warning(f"Description IA échouée : {e}")
+        return ""
+
+
 @app.route("/estimation/new", methods=["GET", "POST"])
 @login_required
 def estimation_new():
@@ -462,6 +513,16 @@ def estimation_new():
                 return float(str(f.get(k, "")).replace("'", "").replace(" ", "").replace(",", ".") or d)
             except ValueError:
                 return d
+        description = (f.get("description") or "").strip()
+        # Si l'utilisateur n'a rien mis, on demande à Claude de rédiger un paragraphe LP
+        if not description:
+            description = _generate_lp_description({
+                "address": f.get("address"), "quartier": f.get("quartier"),
+                "type_bien": f.get("type_bien"), "surface": num("surface"),
+                "pieces": f.get("pieces"), "etage": f.get("etage"),
+                "annee": f.get("annee"), "etat": f.get("etat"),
+                "balcon": num("balcon"), "parking_nb": int(num("parking_nb")),
+            })
         e = Estimation(
             user_id=session.get("user_id"),
             address=f.get("address"), quartier=f.get("quartier"),
@@ -470,7 +531,7 @@ def estimation_new():
             etat=f.get("etat"), balcon=num("balcon"), balcon_pond=num("balcon_pond", 0.5),
             parking_nb=int(num("parking_nb")), parking_val=num("parking_val"),
             prix_m2=num("prix_m2"), marge=num("marge", 0.07),
-            description=f.get("description"), atouts=f.get("atouts"),
+            description=description, atouts=f.get("atouts"),
             inconvenients=f.get("inconvenients"), courtier=f.get("courtier"))
         db.session.add(e)
         db.session.commit()
@@ -655,6 +716,44 @@ def estimation_notes(eid):
     log_audit("updated_notes", e.id)
     flash("Notes mises à jour.")
     return redirect(url_for("estimation_report", eid=e.id))
+
+
+APARTMENT_TYPES = {"Appartement", "Duplex", "Attique", "Penthouse", "Triplex"}
+HOUSE_TYPES = {"Maison individuelle", "Villa", "Maison"}
+
+
+def _classify_type(type_bien):
+    if not type_bien:
+        return "autres"
+    if type_bien in APARTMENT_TYPES:
+        return "appartements"
+    if type_bien in HOUSE_TYPES:
+        return "maisons"
+    return "autres"
+
+
+@app.route("/classeur")
+@login_required
+def classeur():
+    """Archive de toutes les estimations de l'utilisateur, groupée par quartier puis catégorie."""
+    estimations = own_estimations().order_by(Estimation.created_at.desc()).all()
+    grouped = {}  # quartier -> {"appartements": [], "maisons": [], "autres": []}
+    for e in estimations:
+        q = e.quartier or "Sans quartier"
+        grouped.setdefault(q, {"appartements": [], "maisons": [], "autres": []})
+        grouped[q][_classify_type(e.type_bien)].append(e)
+
+    # Ordre voulu : les 3 quartiers principaux d'abord, puis le reste alphabétique
+    priority = ["Champel", "Eaux-Vives", "Miremont"]
+    ordered_quartiers = [q for q in priority if q in grouped]
+    ordered_quartiers += sorted(q for q in grouped if q not in priority)
+
+    return render_template(
+        "classeur.html",
+        grouped=grouped,
+        quartiers=ordered_quartiers,
+        total=len(estimations),
+    )
 
 
 @app.route("/dashboard")

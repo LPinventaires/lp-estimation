@@ -6,8 +6,19 @@
       <select name="quartier"><option value="">—</option>
         {% for q in quartiers %}<option value="{{ q }}">{{ q }}</option>{% endfor %}</select></div>
     <div class="field"><label>Type</label>
-      <select name="type_bien"><option>Appartement</option><option>Duplex</option>
-      <option>Attique</option><option>Triplex</option></select></div>
+      <select name="type_bien">
+        <optgroup label="Appartements">
+          <option>Appartement</option>
+          <option>Duplex</option>
+          <option>Attique</option>
+          <option>Penthouse</option>
+          <option>Triplex</option>
+        </optgroup>
+        <optgroup label="Maisons">
+          <option>Maison individuelle</option>
+          <option>Villa</option>
+        </optgroup>
+      </select></div>
     <div class="field"><label>Surface pondérée (m²)</label><input name="surface" inputmode="decimal" placeholder="180"></div>
     <div class="field"><label>Pièces</label><input name="pieces" placeholder="5"></div>
     <div class="field"><label>Étage</label><input name="etage" placeholder="3"></div>

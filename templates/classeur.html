@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:22px">
+  <div>
+    <h1 style="margin:0 0 6px">Classeur</h1>
+    <p class="sub" style="margin:0">
+      Archive de toutes vos estimations, classées par quartier puis par type de bien.
+      {% if total %}<strong>{{ total }}</strong> estimation{{ 's' if total > 1 else '' }} au total.{% endif %}
+    </p>
+  </div>
+  <a href="{{ url_for('estimation_new') }}" class="btn">+ Nouvelle estimation</a>
+</div>
+
+{% if not total %}
+  <div class="card" style="text-align:center;padding:40px 20px">
+    <p style="margin:0 0 14px;color:var(--muted)">Le classeur est vide pour l'instant.</p>
+    <a href="{{ url_for('estimation_new') }}" class="btn">Créer ma première estimation</a>
+  </div>
+{% else %}
+  {% macro estim_card(e) %}
+    <a href="{{ url_for('estimation_report', eid=e.id) }}"
+       style="display:block;padding:14px 16px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);margin-bottom:10px;transition:.12s"
+       onmouseover="this.style.borderColor='var(--accent)';this.style.background='#faf3e8'"
+       onmouseout="this.style.borderColor='var(--line)';this.style.background='var(--bg2)'">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline">
+        <div style="flex:1;min-width:220px">
+          <div style="font-weight:600;font-size:15px">{{ e.address or 'Sans adresse' }}</div>
+          <div style="color:var(--muted);font-size:12.5px;margin-top:3px">
+            {{ e.type_bien or '—' }} · {{ e.surface|m2 }} m²{% if e.pieces %} · {{ e.pieces }} pièces{% endif %}{% if e.etage %} · étage {{ e.etage }}{% endif %}
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:700;color:var(--accent);font-size:15.5px">CHF {{ e.prix_presentation|chf }}</div>
+          <div style="color:var(--muted);font-size:12px">
+            {% if e.prix_m2 %}CHF {{ e.prix_m2|chf }}/m² · {% endif %}{{ e.created_at.strftime('%d/%m/%Y') }}
+          </div>
+        </div>
+      </div>
+    </a>
+  {% endmacro %}
+
+  {% for q in quartiers %}
+    {% set g = grouped[q] %}
+    {% set total_q = g.appartements|length + g.maisons|length + g.autres|length %}
+    <details open style="margin-bottom:18px" class="card" onclick="event.stopPropagation()">
+      <summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--ink);letter-spacing:.02em">{{ q }}</div>
+          <div style="color:var(--muted);font-size:12.5px;margin-top:2px">
+            {{ total_q }} bien{{ 's' if total_q > 1 else '' }}
+            {% if g.appartements %} · {{ g.appartements|length }} appartement{{ 's' if g.appartements|length > 1 else '' }}{% endif %}
+            {% if g.maisons %} · {{ g.maisons|length }} maison{{ 's' if g.maisons|length > 1 else '' }}{% endif %}
+          </div>
+        </div>
+        <span style="color:var(--accent);font-size:22px" class="chevron">›</span>
+      </summary>
+
+      <div style="margin-top:18px">
+        {% if g.appartements %}
+          <div class="section-title" style="margin-top:0">Appartements ({{ g.appartements|length }})</div>
+          {% for e in g.appartements %}{{ estim_card(e) }}{% endfor %}
+        {% endif %}
+
+        {% if g.maisons %}
+          <div class="section-title">Maisons ({{ g.maisons|length }})</div>
+          {% for e in g.maisons %}{{ estim_card(e) }}{% endfor %}
+        {% endif %}
+
+        {% if g.autres %}
+          <div class="section-title">Autres ({{ g.autres|length }})</div>
+          {% for e in g.autres %}{{ estim_card(e) }}{% endfor %}
+        {% endif %}
+      </div>
+    </details>
+  {% endfor %}
+{% endif %}
+
+<style>
+  details.card > summary::marker,
+  details.card > summary::-webkit-details-marker { display:none }
+  details.card[open] > summary .chevron { transform:rotate(90deg) }
+  details.card > summary .chevron { transition:transform .18s;display:inline-block }
+</style>
+{% endblock %}
