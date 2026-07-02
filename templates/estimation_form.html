@@ -1,31 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Nouvelle estimation</h1>
-<p class="sub">Analyse une photo ou remplis directement les champs. La valeur vénale et le prix de présentation se calculent à la génération.</p>
+<h1 style="margin:0 0 4px">Nouvelle estimation</h1>
+<p class="sub" style="margin:0 0 26px">Décrivez le bien ou déposez une pièce — l'IA extrait les informations et vous validez avant génération.</p>
 
-<div class="card" style="border-left:4px solid var(--accent)">
-  <div class="section-title" style="margin-top:0">📸 Analyser une photo (optionnel)</div>
-  <p style="color:var(--muted);margin:0 0 12px;font-size:13.5px">
-    Dépose une capture d'écran d'annonce (Immoscout24, Realadvisor…), une photo d'une fiche courtier, ou n'importe quelle image du bien. L'IA extrait automatiquement l'adresse, la surface, l'état, etc. et pré-remplit le formulaire ci-dessous.
-  </p>
-  <div id="photo-dropzone" style="border:2px dashed #cdb694;border-radius:12px;padding:22px;text-align:center;background:var(--bg2);cursor:pointer;transition:.15s">
-    <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none">
-    <div id="photo-cta" style="color:var(--muted)">
-      <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:4px">Cliquer pour choisir une image</div>
-      <div style="font-size:12px">ou glisser-déposer ici · JPG, PNG, WEBP, GIF · max 30 Mo</div>
-    </div>
-    <div id="photo-preview" style="display:none">
-      <img id="photo-thumb" alt="" style="max-height:180px;border-radius:8px;border:1px solid var(--line);margin-bottom:10px">
-      <div id="photo-name" style="font-size:13px;color:var(--muted)"></div>
+<div class="card luxe" style="border-top:3px solid var(--accent);padding:26px 28px">
+  <div class="section-title" style="margin-top:0">✨ Analyse intelligente</div>
+
+  <div class="field" style="margin-bottom:14px">
+    <label>Description du bien (colle une annonce, tes notes, ou dicte le brief)</label>
+    <textarea id="text-input" rows="5" placeholder="Exemple : Avenue de Champel 64, appartement duplex de 274 m² récemment rénové en 2024. Très lumineux, belle vue sur la campagne. 5.5 pièces, 3e étage, avec 2 places de parking et 40 m² de terrasse."
+      style="font-size:14.5px;line-height:1.55"></textarea>
+  </div>
+
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <button type="button" id="analyze-text-btn" class="btn" style="min-width:220px">Analyser le texte</button>
+    <div style="color:var(--muted);font-size:13px">— ou —</div>
+    <div style="flex:1;min-width:260px">
+      <div id="photo-dropzone" style="border:1.5px dashed #cdb694;border-radius:12px;padding:14px 20px;text-align:center;background:var(--bg2);cursor:pointer;transition:.12s">
+        <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none">
+        <div id="photo-cta" style="color:var(--muted);font-size:13.5px">
+          <strong style="color:var(--ink)">Déposer une photo</strong> — capture d'annonce, fiche courtier, image
+        </div>
+        <div id="photo-preview" style="display:none">
+          <img id="photo-thumb" alt="" style="max-height:96px;border-radius:6px;border:1px solid var(--line);margin-bottom:6px">
+          <div id="photo-name" style="font-size:12px;color:var(--muted)"></div>
+        </div>
+      </div>
     </div>
   </div>
-  <div id="photo-status" style="margin-top:12px;text-align:center;font-size:13.5px;min-height:20px"></div>
+  <div id="ai-status" style="margin-top:6px;text-align:center;font-size:13.5px;min-height:20px"></div>
 </div>
 
 <form method="post" action="{{ url_for('estimation_new') }}" id="estim-form">
+  <div style="text-align:center;margin:26px 0 18px">
+    <div style="display:inline-block;background:var(--card);border:1px solid var(--line);padding:6px 20px;border-radius:20px;color:var(--muted);font-size:12px;letter-spacing:.14em;text-transform:uppercase">Vérifiez et ajustez si besoin</div>
+  </div>
+
   {% include "_form_fields.html" %}
-  <div class="toolbar no-print" style="margin-top:16px">
-    <a class="btn secondary" href="{{ url_for('dashboard') }}">← Retour au tableau de bord</a>
+
+  <div class="toolbar no-print" style="margin-top:22px;justify-content:space-between;display:flex;gap:14px;flex-wrap:wrap">
+    <a class="btn secondary" href="{{ url_for('dashboard') }}">← Tableau de bord</a>
     <button class="btn" type="submit">Générer le rapport →</button>
   </div>
 </form>
@@ -33,14 +47,16 @@
 {% block scripts %}
 <script>
 (function() {
+  const form = document.getElementById('estim-form');
+  const status = document.getElementById('ai-status');
+  const textInput = document.getElementById('text-input');
+  const analyzeBtn = document.getElementById('analyze-text-btn');
   const dz = document.getElementById('photo-dropzone');
-  const input = document.getElementById('photo-input');
+  const photoInput = document.getElementById('photo-input');
   const cta = document.getElementById('photo-cta');
   const preview = document.getElementById('photo-preview');
   const thumb = document.getElementById('photo-thumb');
   const nameEl = document.getElementById('photo-name');
-  const status = document.getElementById('photo-status');
-  const form = document.getElementById('estim-form');
 
   function setStatus(msg, color) {
     status.textContent = msg || '';
@@ -51,11 +67,17 @@
     if (value === null || value === undefined || value === '') return;
     const el = form.querySelector(`[name="${name}"]`);
     if (!el) return;
-    // pour <select>, essayer de matcher la valeur en insensible à la casse
     if (el.tagName === 'SELECT') {
       const target = String(value).toLowerCase().trim();
       for (const opt of el.options) {
         if (opt.value.toLowerCase() === target || opt.textContent.toLowerCase().trim() === target) {
+          el.value = opt.value;
+          return;
+        }
+      }
+      // no exact match — take the first non-empty option matching partially
+      for (const opt of el.options) {
+        if (opt.value && opt.value.toLowerCase().includes(target)) {
           el.value = opt.value;
           return;
         }
@@ -65,15 +87,57 @@
     }
   }
 
-  async function upload(file) {
+  function applyExtracted(data) {
+    const filled = [];
+    for (const [k, v] of Object.entries(data)) {
+      if (k.startsWith('_')) continue;
+      if (v === '' || v === null) continue;
+      fillField(k, v);
+      filled.push(k);
+    }
+    setStatus(`✅ ${filled.length} champ${filled.length > 1 ? 's' : ''} pré-rempli${filled.length > 1 ? 's' : ''}. Vérifiez, corrigez, puis générez.`, '#4a7c3a');
+    // scroll to the first form field so the user sees the pre-fill
+    const firstField = form.querySelector('input, select, textarea');
+    if (firstField) firstField.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+
+  async function analyzeText() {
+    const text = textInput.value.trim();
+    if (text.length < 15) {
+      setStatus('Décrivez le bien avec un peu plus de détails.', '#c1502e');
+      return;
+    }
+    analyzeBtn.disabled = true;
+    const original = analyzeBtn.textContent;
+    analyzeBtn.textContent = 'Analyse en cours…';
+    setStatus('⏳ Claude Opus 4.8 analyse la description (5-15 s)…', 'var(--accent2)');
+    try {
+      const res = await fetch('{{ url_for("analyze_text") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({text}),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setStatus('❌ ' + (data.error || 'Erreur inconnue'), '#c1502e');
+      } else {
+        applyExtracted(data);
+      }
+    } catch (e) {
+      setStatus('❌ Erreur réseau : ' + e.message, '#c1502e');
+    } finally {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = original;
+    }
+  }
+
+  async function uploadPhoto(file) {
     if (!file) return;
-    // preview
     thumb.src = URL.createObjectURL(file);
     nameEl.textContent = file.name;
     cta.style.display = 'none';
     preview.style.display = 'block';
-    setStatus('⏳ Analyse par Claude Vision en cours (10 à 20 secondes)…', 'var(--accent2)');
-
+    setStatus('⏳ Claude Vision analyse la photo (10-20 s)…', 'var(--accent2)');
     const fd = new FormData();
     fd.append('file', file);
     try {
@@ -81,32 +145,28 @@
       const data = await res.json();
       if (!res.ok || data.error) {
         setStatus('❌ ' + (data.error || 'Erreur inconnue'), '#c1502e');
-        return;
+      } else {
+        applyExtracted(data);
       }
-      // pré-remplir les champs
-      const filled = [];
-      for (const [k, v] of Object.entries(data)) {
-        if (k.startsWith('_')) continue;
-        if (v === '' || v === null) continue;
-        fillField(k, v);
-        filled.push(k);
-      }
-      setStatus(`✅ ${filled.length} champ(s) pré-rempli(s). Vérifie et ajuste avant de générer le rapport.`, '#4a7c3a');
     } catch (e) {
       setStatus('❌ Erreur réseau : ' + e.message, '#c1502e');
     }
   }
 
-  dz.addEventListener('click', () => input.click());
-  input.addEventListener('change', (e) => upload(e.target.files[0]));
+  analyzeBtn.addEventListener('click', analyzeText);
+  textInput.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') analyzeText();
+  });
 
+  dz.addEventListener('click', () => photoInput.click());
+  photoInput.addEventListener('change', (e) => uploadPhoto(e.target.files[0]));
   dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.style.borderColor = 'var(--accent)'; dz.style.background = '#faf3e8'; });
   dz.addEventListener('dragleave', () => { dz.style.borderColor = '#cdb694'; dz.style.background = 'var(--bg2)'; });
   dz.addEventListener('drop', (e) => {
     e.preventDefault();
     dz.style.borderColor = '#cdb694';
     dz.style.background = 'var(--bg2)';
-    if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files[0]) uploadPhoto(e.dataTransfer.files[0]);
   });
 })();
 </script>

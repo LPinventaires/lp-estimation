@@ -359,18 +359,51 @@ def upload():
 
 
 class PhotoExtraction(BaseModel):
-    """Champs extraits d'une photo de fiche/annonce d'un bien immobilier à Genève."""
+    """Champs extraits d'une photo, d'un texte libre ou d'une fiche/annonce d'un bien à Genève."""
     address: str = Field(default="", description="Adresse complète (ex: Avenue de Miremont 30)")
-    quartier: str = Field(default="", description="Quartier — un de: Champel, Eaux-Vives, Miremont (vide si autre ou incertain)")
-    type_bien: str = Field(default="", description="Type — ex: Appartement, Duplex, Attique, Triplex")
-    surface: Optional[float] = Field(default=None, description="Surface habitable ou pondérée en m² (nombre uniquement)")
+    quartier: str = Field(default="", description="Quartier ou commune genevoise (ex: Champel, Eaux-Vives, Miremont, Cologny, Chêne-Bougeries, Vésenaz, Carouge, Pâquis, Servette…). Vide si vraiment inconnu.")
+    type_bien: str = Field(default="", description="Type — Appartement, Duplex, Attique, Penthouse, Triplex, Maison individuelle, Villa")
+    surface: Optional[float] = Field(default=None, description="Surface habitable ou pondérée en m² (nombre uniquement, sans unité)")
     pieces: str = Field(default="", description="Nombre de pièces (ex: 5, 4.5)")
-    etage: str = Field(default="", description="Étage (ex: 3, RDC)")
+    etage: str = Field(default="", description="Étage (ex: 3, RDC, dernier)")
     annee: str = Field(default="", description="Année de construction ou de rénovation (ex: 2016)")
-    etat: str = Field(default="", description="État du bien (ex: Excellent, Rénové, À rafraîchir)")
-    balcon: Optional[float] = Field(default=None, description="Surface totale des extérieurs (balcon/loggia/terrasse) en m²")
+    etat: str = Field(default="", description="État du bien (ex: Excellent, Rénové 2024, À rafraîchir)")
+    balcon: Optional[float] = Field(default=None, description="Surface totale des extérieurs (balcon/loggia/terrasse/jardin) en m²")
     parking_nb: Optional[int] = Field(default=None, description="Nombre de places de parking")
-    description: str = Field(default="", description="Description libre du bien (2-4 phrases max)")
+    description: str = Field(default="", description="Description libre du bien (2-4 phrases max, style LP)")
+
+
+def _extraction_prompt() -> str:
+    quartiers_hint = ", ".join(q for q in QUARTIERS if q != "Autre")
+    return (
+        "Extrais les champs demandés pour pré-remplir un formulaire d'estimation Leonard Properties. "
+        "Règles :\n"
+        f"- 'quartier' : choisis dans cette liste si possible : {quartiers_hint}. "
+        "Si le bien est ailleurs à Genève, mets le nom de la commune/quartier tel qu'il apparaît. "
+        "Vide seulement si vraiment inconnu.\n"
+        "- 'surface' : nombre en m² uniquement (sans unité). Si 'surface pondérée' et 'surface PPE' "
+        "apparaissent, prends la pondérée.\n"
+        "- 'description' : 3 à 5 phrases en français, style sobre et factuel LP. Mentionne le quartier "
+        "et un atout crédible. N'invente rien.\n"
+        "- Si un champ n'est pas mentionné, laisse-le vide. Ne devine pas — mieux vaut vide que faux."
+    )
+
+
+def _extract_from_content(content_blocks) -> dict:
+    """Appelle Claude Opus 4.8 avec un content (image ou texte) → dict de champs prêt pour le formulaire."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY manquante")
+    from anthropic import Anthropic
+    client = Anthropic(api_key=api_key)
+    response = client.messages.parse(
+        model="claude-opus-4-8",
+        max_tokens=1500,
+        messages=[{"role": "user", "content": content_blocks}],
+        output_format=PhotoExtraction,
+    )
+    fields = response.parsed_output.model_dump()
+    return {k: ("" if v is None else v) for k, v in fields.items()}
 
 
 def _resize_image_for_vision(raw: bytes, max_edge: int = 1568) -> tuple[bytes, str]:
@@ -409,41 +442,46 @@ def upload_photo():
     b64 = base64.standard_b64encode(img_bytes).decode()
 
     try:
-        from anthropic import Anthropic
-        client = Anthropic(api_key=api_key)
-        prompt = (
-            "Cette image montre une fiche, une annonce, une capture d'écran ou une photo d'un bien "
-            "immobilier à Genève. Extrais les champs demandés pour pré-remplir un formulaire "
-            "d'estimation LP. Règles :\n"
-            "- Pour 'quartier' : renvoie exactement 'Champel', 'Eaux-Vives' ou 'Miremont'. "
-            "Si le bien est ailleurs ou si tu n'es pas sûr, laisse vide.\n"
-            "- Pour 'surface' : donne un nombre en m² (ex: 120). Si 'surface pondérée' et 'surface "
-            "PPE' apparaissent, prends la pondérée.\n"
-            "- 'description' : 2 à 4 phrases en français, style sobre et factuel LP.\n"
-            "- Si un champ n'est pas visible, laisse-le vide (chaîne vide ou null).\n"
-            "- Ne devine pas : mieux vaut vide que faux."
-        )
-        response = client.messages.parse(
-            model="claude-opus-4-8",
-            max_tokens=1500,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
-                    {"type": "text", "text": prompt},
-                ],
-            }],
-            output_format=PhotoExtraction,
-        )
-        extracted = response.parsed_output
+        fields = _extract_from_content([
+            {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
+            {"type": "text", "text": "Cette image montre une fiche, une annonce, une capture d'écran ou une photo d'un bien immobilier à Genève. " + _extraction_prompt()},
+        ])
     except Exception as e:
         return jsonify({"error": f"Erreur lors de l'analyse par l'IA : {e}"}), 502
 
-    fields = extracted.model_dump()
-    # normaliser : convertir Nones en valeurs vides pour le JS front-end
-    fields = {k: ("" if v is None else v) for k, v in fields.items()}
+    proposed, pool = ref_for(fields.get("quartier"), fields.get("address"))
+    if proposed:
+        fields["prix_m2"] = round(proposed)
+    fields["_refs"] = [{"adresse": r.adresse, "quartier": r.quartier,
+                        "prix_m2": r.prix_m2, "annee": r.annee, "kind": r.kind} for r in pool]
+    return jsonify(fields)
 
-    # comparables locaux (comme le fait déjà /upload)
+
+@app.route("/analyze-text", methods=["POST"])
+@login_required
+def analyze_text():
+    """Analyse une description libre du bien collée par l'utilisateur → pré-remplit tous les champs."""
+    data = request.get_json(silent=True) or request.form
+    text = (data.get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "Texte vide."}), 400
+    if len(text) < 15:
+        return jsonify({"error": "Décris le bien avec un peu plus de détails (au moins une phrase)."}), 400
+
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return jsonify({"error": "Clé API Anthropic non configurée sur le serveur."}), 500
+
+    try:
+        fields = _extract_from_content([
+            {"type": "text", "text": (
+                "Voici une description libre d'un bien immobilier à Genève, écrite par un courtier "
+                "Leonard Properties ou collée depuis une annonce. " + _extraction_prompt() +
+                "\n\n--- Description ---\n" + text
+            )},
+        ])
+    except Exception as e:
+        return jsonify({"error": f"Erreur lors de l'analyse par l'IA : {e}"}), 502
+
     proposed, pool = ref_for(fields.get("quartier"), fields.get("address"))
     if proposed:
         fields["prix_m2"] = round(proposed)

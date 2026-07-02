@@ -1,101 +1,455 @@
+/* ==============================================================
+   Leonard Properties — Estimation hédoniste · style luxe
+   Palette : beige #f5f0e8 · or #d4a574 · brun profond #2a2520
+   ============================================================== */
+
 :root{
-  --bg:#f5f0e8; --bg2:#faf7f1; --card:#fef9f4; --line:#e8e2d8;
-  --ink:#2a2520; --muted:#8b8477; --accent:#d4a574; --accent2:#c9976b;
-  --good:#7a9d6f; --danger:#c85858; --radius:12px;
+  --bg:#f5f0e8;
+  --bg2:#efe7d7;         /* beige plus chaud pour le contraste des sections */
+  --bg3:#faf7f1;         /* beige très clair pour les inputs */
+  --card:#fefaf3;        /* card à peine plus claire que le fond */
+  --card-hi:#fdf4e5;     /* card accentuée */
+  --line:#dcd0b8;        /* filet fin beige/or */
+  --line-strong:#c9b58a; /* filet or plus marqué */
+  --ink:#2a2520;         /* brun profond */
+  --ink-soft:#4a4038;    /* brun texte secondaire */
+  --muted:#7d715f;       /* muted plus chaud */
+  --accent:#d4a574;      /* or */
+  --accent2:#b8895b;     /* or plus foncé */
+  --accent-soft:#e8cfa8; /* or clair pour surlignage */
+  --good:#7a9d6f;
+  --danger:#c25a3f;
+  --radius:14px;
+  --radius-lg:18px;
+  --shadow-sm:0 1px 3px rgba(70,50,20,.06);
+  --shadow-md:0 6px 24px rgba(70,50,20,.09);
+  --shadow-lg:0 14px 40px rgba(70,50,20,.14);
+  --serif:'Playfair Display','Cormorant Garamond',Georgia,'Times New Roman',serif;
+  --sans:'Inter','Helvetica Neue',-apple-system,Segoe UI,Arial,sans-serif;
 }
-[data-theme="dark"]{
-  --bg:#18150f; --bg2:#201c14; --card:#252017; --line:#3a3327;
-  --ink:#ece8e0; --muted:#a59a87; --accent:#c9a76b; --accent2:#d6bd91;
-  --good:#8fbf8b; --danger:#d99a8a; --radius:12px;
-}
-[data-theme="light"]{
-  --bg:#ffffff; --bg2:#f5f5f5; --card:#fafafa; --line:#e5e5e5;
-  --ink:#1a1a1a; --muted:#666666; --accent:#8b7355; --accent2:#a89968;
-  --good:#6b9966; --danger:#b85858; --radius:12px;
-}
+
 *{box-sizing:border-box}
 html,body{margin:0}
-body{font-family:'Inter',-apple-system,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-a{color:var(--accent2);text-decoration:none}
-a:hover{color:#a9c6e6}
-main{max-width:1040px;margin:30px auto;padding:0 22px}
-h1{font-size:24px;font-weight:700;margin:0 0 4px;letter-spacing:-.01em}
-h2{font-size:16px;color:var(--ink);margin:26px 0 10px;font-weight:600}
-.sub{color:var(--muted);margin:0 0 22px}
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  color:var(--ink);
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(1200px 500px at 100% -20%,rgba(212,165,116,.10),transparent 60%),
+    radial-gradient(900px 400px at -10% 120%,rgba(184,137,91,.08),transparent 55%);
+  background-attachment:fixed;
+}
+a{color:var(--accent2);text-decoration:none;transition:color .15s}
+a:hover{color:var(--ink)}
+
+main{max-width:1080px;margin:36px auto 60px;padding:0 26px}
+
+/* ---------- Typographie premium ---------- */
+h1{
+  font-family:var(--serif);
+  font-size:34px;
+  font-weight:600;
+  letter-spacing:.005em;
+  color:var(--ink);
+  margin:0 0 6px;
+  line-height:1.15;
+}
+h2{
+  font-family:var(--serif);
+  font-size:22px;
+  font-weight:600;
+  color:var(--ink);
+  margin:28px 0 12px;
+  letter-spacing:.01em;
+}
+h3{
+  font-family:var(--serif);
+  font-size:17px;
+  font-weight:600;
+  color:var(--ink-soft);
+  margin:20px 0 8px;
+}
+.sub{color:var(--muted);margin:0 0 26px;font-size:15px}
 .muted{color:var(--muted)}
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:15px 26px;background:#fdf9f3;border-bottom:1px solid var(--line)}
-.brand{color:#2a2520;font-weight:700;letter-spacing:.16em;font-size:14px}
-.topbar nav{display:flex;gap:22px;align-items:center}
-.topbar nav a{color:var(--muted);font-size:14px}
-.topbar nav a:hover{color:var(--accent)}
-.topbar nav a.ghost{color:#6b7280}
-.flash{max-width:1040px;margin:16px auto 0;padding:11px 16px;background:#fde8d8;border:1px solid #e8c4a8;color:#8b5a2b;border-radius:8px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;margin-bottom:18px}
-.btn{display:inline-block;background:var(--accent);color:#1b1d22;font-weight:600;padding:10px 18px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-family:inherit}
-.btn:hover{filter:brightness(1.07);color:#1b1d22}
+
+/* ---------- Header / topbar ---------- */
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:20px 34px;
+  background:linear-gradient(180deg,#fdf9f2 0%,#f8f1e2 100%);
+  border-bottom:1px solid var(--line);
+  box-shadow:var(--shadow-sm);
+}
+.brand{
+  color:var(--ink);
+  font-family:var(--serif);
+  font-weight:600;
+  font-size:16px;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+}
+.topbar nav{display:flex;gap:24px;align-items:center}
+.topbar nav a{
+  color:var(--muted);
+  font-size:13.5px;
+  font-weight:500;
+  letter-spacing:.02em;
+  position:relative;
+  padding:2px 0;
+}
+.topbar nav a::after{
+  content:'';
+  position:absolute;
+  left:0;right:0;bottom:-4px;
+  height:1.5px;background:var(--accent);
+  transform:scaleX(0);
+  transition:transform .18s ease;
+  transform-origin:center;
+}
+.topbar nav a:hover{color:var(--ink)}
+.topbar nav a:hover::after{transform:scaleX(1)}
+.topbar nav a.ghost{color:var(--muted)}
+
+/* ---------- Flash / notifications ---------- */
+.flash{
+  max-width:1080px;
+  margin:18px auto 0;
+  padding:13px 20px;
+  background:linear-gradient(180deg,#fceccd,#f8dda7);
+  border:1px solid var(--line-strong);
+  color:#6b4a20;
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+  font-size:14px;
+}
+
+/* ---------- Cards ---------- */
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius-lg);
+  padding:26px 30px;
+  margin-bottom:22px;
+  box-shadow:var(--shadow-sm);
+  position:relative;
+}
+.card.luxe{
+  background:linear-gradient(180deg,var(--card) 0%,var(--card-hi) 100%);
+  border:1px solid var(--line-strong);
+  box-shadow:var(--shadow-md);
+}
+.card.luxe::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:var(--radius-lg);
+  padding:1px;
+  background:linear-gradient(135deg,var(--accent) 0%,transparent 30%,transparent 70%,var(--accent) 100%);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;
+  opacity:.35;
+}
+
+/* ---------- Boutons ---------- */
+.btn{
+  display:inline-block;
+  background:linear-gradient(180deg,var(--accent) 0%,var(--accent2) 100%);
+  color:#fff;
+  font-weight:600;
+  font-family:var(--sans);
+  padding:12px 26px;
+  border-radius:10px;
+  border:1px solid var(--accent2);
+  cursor:pointer;
+  font-size:14px;
+  letter-spacing:.03em;
+  transition:.15s;
+  box-shadow:0 2px 6px rgba(184,137,91,.28);
+}
+.btn:hover{
+  filter:brightness(1.06);
+  color:#fff;
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(184,137,91,.35);
+}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
 .btn.block{display:block;width:100%;text-align:center}
-.btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
-.btn.secondary:hover{border-color:var(--muted);color:#fff}
-.btn.danger{background:transparent;color:var(--danger);border:1px solid #4a3a38;padding:6px 11px}
-/* DROPZONE */
-.drop{border:2px dashed #434853;border-radius:16px;padding:46px 24px;text-align:center;background:var(--bg2);transition:.15s;cursor:pointer}
-.drop:hover,.drop.over{border-color:var(--accent);background:#2c313a}
-.drop .ico{font-size:34px;opacity:.6}
-.drop h3{margin:12px 0 4px;font-weight:600;font-size:17px}
+.btn.secondary{
+  background:transparent;
+  color:var(--ink-soft);
+  border:1px solid var(--line-strong);
+  box-shadow:none;
+}
+.btn.secondary:hover{
+  background:var(--bg2);
+  color:var(--ink);
+  border-color:var(--accent);
+}
+.btn.danger{
+  background:transparent;
+  color:var(--danger);
+  border:1px solid #d9a99a;
+  padding:8px 14px;
+  box-shadow:none;
+}
+.btn.danger:hover{background:#f8e6e0;color:#a04528}
+
+/* ---------- Dropzone (legacy) ---------- */
+.drop{
+  border:2px dashed var(--line-strong);
+  border-radius:var(--radius-lg);
+  padding:48px 26px;
+  text-align:center;
+  background:var(--bg2);
+  transition:.15s;
+  cursor:pointer;
+}
+.drop:hover,.drop.over{border-color:var(--accent);background:#f5e7cd}
+.drop .ico{font-size:36px;color:var(--accent2);opacity:.7}
+.drop h3{margin:14px 0 4px;font-weight:600;font-size:18px;color:var(--ink);font-family:var(--serif)}
 .drop p{color:var(--muted);margin:0;font-size:13.5px}
-.drop .formats{margin-top:10px;font-size:12px;color:#6b7280}
+.drop .formats{margin-top:10px;font-size:12px;color:var(--muted)}
 #status{margin-top:14px;color:var(--accent2);font-size:14px;min-height:18px}
-/* TABLES */
-table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
-th,td{padding:9px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-td.num,th.num{text-align:right;white-space:nowrap}
-tbody tr:hover td{background:#30353e}
-tfoot td{font-weight:700;color:#fff;border-top:1px solid var(--line)}
-.empty{color:var(--muted);font-style:italic;padding:10px 0}
-/* FORM */
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.field{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
-.field label{font-weight:600;font-size:13px;color:#cdd2da}
+
+/* ---------- Tables ---------- */
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:8px 0}
+th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{
+  color:var(--muted);
+  font-weight:600;
+  font-size:11.5px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  border-bottom:1.5px solid var(--line-strong);
+}
+td.num,th.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+tbody tr{transition:background .12s}
+tbody tr:hover td{background:var(--bg2)}
+tfoot td{font-weight:700;color:var(--ink);border-top:1.5px solid var(--line-strong)}
+.empty{color:var(--muted);font-style:italic;padding:12px 0}
+
+/* ---------- Form ---------- */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{
+  font-weight:600;
+  font-size:12px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
 .field .hint{color:var(--muted);font-size:12px;font-weight:400}
-input,select,textarea{font-family:inherit;font-size:14px;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:#fef9f4;color:var(--ink)}
-input::placeholder,textarea::placeholder{color:#6b7280}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(201,167,107,.18)}
-.section-title{color:var(--accent);font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 12px;border-bottom:1px solid var(--line);padding-bottom:8px}
-.toolbar{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
-.pill{display:inline-block;background:#33383f;color:#cdd2da;padding:3px 10px;border-radius:20px;font-size:12px}
-.row-actions{display:flex;gap:8px;align-items:center}
+input,select,textarea{
+  font-family:inherit;
+  font-size:14.5px;
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--bg3);
+  color:var(--ink);
+  transition:.15s;
+}
+input::placeholder,textarea::placeholder{color:#a89a80}
+input:hover,select:hover,textarea:hover{border-color:var(--line-strong)}
+input:focus,select:focus,textarea:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(212,165,116,.16);
+  background:#fff;
+}
+
+/* Titre de section — élégant filet or */
+.section-title{
+  color:var(--accent2);
+  font-family:var(--serif);
+  font-weight:600;
+  font-size:15px;
+  text-transform:none;
+  letter-spacing:.02em;
+  margin:22px 0 14px;
+  padding-bottom:10px;
+  position:relative;
+  border-bottom:1px solid var(--line);
+}
+.section-title::after{
+  content:'';
+  position:absolute;
+  left:0;bottom:-1px;
+  width:44px;height:2px;
+  background:linear-gradient(90deg,var(--accent),transparent);
+}
+
+.toolbar{display:flex;gap:12px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap}
+.pill{
+  display:inline-block;
+  background:var(--accent-soft);
+  color:var(--ink);
+  padding:4px 12px;
+  border-radius:20px;
+  font-size:11.5px;
+  font-weight:600;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  border:1px solid var(--line-strong);
+}
+.row-actions{display:flex;gap:10px;align-items:center}
 .inline{display:inline}
 .right{text-align:right}
-/* LOGIN — esprit LP inventaire (brun très foncé) */
-.login-page{background:radial-gradient(130% 120% at 50% -10%,#f9f5f0,#f0e8dc 60%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.login-card{background:transparent;border:none;border-radius:0;padding:0;width:320px;text-align:center;box-shadow:none}
-.login-logo{width:84px;height:84px;border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;
-  border:2px solid var(--accent);color:var(--accent);font-weight:700;letter-spacing:.04em;font-size:26px;
-  background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.1)}
-.login-logo img{width:100%;height:100%;object-fit:cover;border-radius:50%}
-.login-brand{font-weight:600;letter-spacing:.22em;color:#2a2520;font-size:18px;text-align:center}
-.login-tag{color:var(--muted);text-align:center;margin:6px 0 26px;font-size:13px;letter-spacing:.02em}
+
+/* Séparateur décoratif or */
+hr, .separator{
+  border:none;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--line-strong) 20%,var(--accent) 50%,var(--line-strong) 80%,transparent);
+  margin:28px 0;
+  position:relative;
+}
+
+/* ---------- Login ---------- */
+.login-page{
+  background:
+    radial-gradient(120% 100% at 50% -10%,#faf3e6,var(--bg) 60%),
+    var(--bg);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.login-card{
+  background:transparent;
+  border:none;
+  padding:0;
+  width:360px;
+  text-align:center;
+}
+.login-logo{
+  width:110px;
+  height:110px;
+  border-radius:14px;
+  margin:0 auto 22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--ink);
+  padding:12px;
+  border:1px solid var(--line-strong);
+  box-shadow:var(--shadow-md);
+  overflow:hidden;
+}
+.login-logo img{max-width:100%;max-height:100%;object-fit:contain}
+.login-brand{
+  font-family:var(--serif);
+  font-weight:600;
+  letter-spacing:.24em;
+  color:var(--ink);
+  font-size:20px;
+  text-align:center;
+  text-transform:uppercase;
+}
+.login-tag{
+  color:var(--muted);
+  text-align:center;
+  margin:8px 0 30px;
+  font-size:13px;
+  letter-spacing:.06em;
+  font-style:italic;
+}
 .login-card .field{text-align:left}
-.login-card .field label{color:var(--muted);font-weight:500;letter-spacing:.02em}
-.login-card input{background:#fff;border-color:#e8e2d8;text-align:center;letter-spacing:.2em;color:var(--ink)}
-.login-foot{color:#6a604f;font-size:12px;margin-top:22px;letter-spacing:.12em;text-transform:uppercase}
-/* REPORT (clair, pour impression) */
-.report-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.report{background:#fff;color:#22262e;border-radius:10px;padding:42px 48px;font-size:14px;line-height:1.6}
-.report h2{color:#1f3864;font-size:16px;margin:24px 0 8px;border-bottom:1px solid #e7ebf2;padding-bottom:5px}
-.report h3{color:#2e5496;font-size:14px;margin:16px 0 6px}
-.report p{margin:8px 0}
-.report ul{margin:6px 0 6px 18px}
+.login-card .field label{color:var(--muted);font-weight:500;letter-spacing:.06em}
+.login-card input{
+  background:#fff;
+  border-color:var(--line-strong);
+  text-align:center;
+  letter-spacing:.06em;
+  color:var(--ink);
+  font-size:15px;
+  padding:14px 14px;
+}
+.login-foot{
+  color:var(--muted);
+  font-size:11px;
+  margin-top:24px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+}
+
+/* ---------- Report (impression) ---------- */
+.report-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.report{
+  background:#fff;
+  color:#22262e;
+  border-radius:12px;
+  padding:48px 54px;
+  font-size:14px;
+  line-height:1.65;
+  box-shadow:var(--shadow-lg);
+  border:1px solid var(--line);
+}
+.report h2{
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:20px;
+  margin:26px 0 10px;
+  border-bottom:1.5px solid var(--accent);
+  padding-bottom:6px;
+  letter-spacing:.01em;
+}
+.report h3{color:var(--accent2);font-family:var(--serif);font-size:16px;margin:18px 0 8px}
+.report p{margin:9px 0}
+.report ul{margin:8px 0 8px 20px}
 .report table{font-size:13px}
-.report th{color:#fff;background:#2e5496;text-transform:none;letter-spacing:0;font-size:12.5px}
-.report th,.report td{border:1px solid #dfe3ea}
-.report tbody tr:hover td{background:#f6f8fb}
-.report tfoot td{background:#fce4d6;color:#22262e}
-.report table.recap td{border:none;padding:8px 4px;font-size:15px}
-.report table.recap tr.hl td{font-weight:800;color:#1f3864;font-size:18px;border-top:2px solid #1f3864}
-.report .head{display:flex;justify-content:space-between;border-bottom:3px solid #1f3864;padding-bottom:14px;margin-bottom:6px}
-.report .logo{font-weight:800;color:#1f3864;letter-spacing:.08em;font-size:18px}
-.report .sign{margin-top:22px;font-weight:700;color:#1f3864}
-@media print{.no-print,.report-actions{display:none!important}main{margin:0;max-width:none}.report{border-radius:0;padding:0}}
-@media(max-width:680px){.grid{grid-template-columns:1fr}.topbar nav{gap:14px}}
+.report th{
+  color:#fff;
+  background:linear-gradient(180deg,var(--ink) 0%,#3d332a 100%);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  font-size:12px;
+}
+.report th,.report td{border:1px solid var(--line)}
+.report tbody tr:hover td{background:var(--bg2)}
+.report tfoot td{background:var(--accent-soft);color:var(--ink);font-weight:700}
+.report table.recap td{border:none;padding:9px 4px;font-size:15px}
+.report table.recap tr.hl td{
+  font-weight:700;
+  color:var(--ink);
+  font-size:19px;
+  border-top:2px solid var(--accent);
+  padding-top:12px;
+}
+.report .head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:2px solid var(--accent);
+  padding-bottom:18px;
+  margin-bottom:12px;
+}
+.report .logo{
+  font-family:var(--serif);
+  font-weight:700;
+  color:var(--ink);
+  letter-spacing:.18em;
+  font-size:20px;
+}
+.report .sign{margin-top:26px;font-weight:600;color:var(--ink);font-family:var(--serif)}
+
+@media print{
+  .no-print,.report-actions{display:none!important}
+  main{margin:0;max-width:none}
+  .report{border-radius:0;padding:0;box-shadow:none;border:none}
+}
+@media(max-width:720px){
+  .grid{grid-template-columns:1fr}
+  .topbar{padding:14px 18px}
+  .topbar nav{gap:14px}
+  main{margin:24px auto 40px;padding:0 18px}
+  h1{font-size:26px}
+  .card{padding:20px 20px}
+}

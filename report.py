@@ -6,7 +6,23 @@ Les chiffres sont calculés de façon déterministe ; seule la rédaction est mi
 """
 
 QUARTIERS = [
-    "Champel", "Eaux-Vives", "Miremont",
+    # Cœur de ville rive gauche
+    "Champel", "Miremont", "Eaux-Vives", "Florissant", "Malagnou",
+    "Villereuse", "La Grange", "Frontenex",
+    # Rive gauche communes limitrophes
+    "Cologny", "Vandoeuvres", "Chêne-Bougeries", "Chêne-Bourg", "Thônex",
+    "Vésenaz", "Collonge-Bellerive", "Anières", "Hermance", "Corsier",
+    # Rive gauche vieille-ville & centre
+    "Cité", "Vieille-Ville", "Rives", "Tranchées", "Plainpalais",
+    "Contamines", "Jonction", "Acacias", "Bâtie",
+    # Rive droite
+    "Pâquis", "Saint-Gervais", "Grottes", "Servette", "Saint-Jean",
+    "Charmilles", "Vieusseux", "Petit-Saconnex", "Grand-Saconnex",
+    "Nations", "Sécheron", "Chambésy", "Genthod", "Bellevue",
+    # Sud-ouest
+    "Carouge", "Grange-Canal", "Champel-Roseraie",
+    # Autres
+    "Autre",
 ]
 
 
