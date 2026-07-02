@@ -1750,10 +1750,10 @@ def load_comparables_csv():
                     if fmt == "estimation_lp":
                         # Format : address, quartier, type_bien, surface, annee,
                         #          prix_m2_retenu, valeur_venale, prix_presentation, description
-                        adresse = " ".join((row.get("address") or "").split()).strip()
+                        adresse = " ".join((row.get("address") or "").split()).strip()[:200]
                         if not adresse:
                             continue
-                        type_bien = _normalize_type(row.get("type_bien") or "")
+                        type_bien = _normalize_type(row.get("type_bien") or "")[:80]
                         if not type_bien:
                             continue  # non résidentiel, skip
                         surface = _parse_swiss_number(row.get("surface"))
@@ -1768,12 +1768,19 @@ def load_comparables_csv():
                             prix_m2 = round(pres / 1.07 / surface)
                         if not prix_m2:
                             continue
+                        # Extrait une année propre (4 chiffres, la plus récente si plusieurs).
+                        # La colonne annee = VARCHAR(20), certains rapports contiennent
+                        # 'Construction 2011-2015, rénové en 2024' → trop long, on prend '2024'.
+                        import re as _re
+                        annee_str = (row.get("annee") or "").strip()
+                        yrs = _re.findall(r"(19\d\d|20\d\d)", annee_str)
+                        annee = max(yrs) if yrs else annee_str[:20]
                         r = RefPrice(
-                            quartier=(row.get("quartier") or "").strip(),
+                            quartier=(row.get("quartier") or "").strip()[:120],
                             adresse=adresse,
                             prix_m2=prix_m2,
                             prix_total=valeur or pres,
-                            annee=(row.get("annee") or "").strip(),
+                            annee=annee,
                             source=source_tag,
                             kind="retenu",  # estimation LP passée = prix retenu par le courtier
                             surface=surface,
