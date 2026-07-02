@@ -870,7 +870,7 @@ def estimation_notes(eid):
 
 
 APARTMENT_TYPES = {"Appartement", "Duplex", "Attique", "Penthouse", "Triplex"}
-HOUSE_TYPES = {"Maison individuelle", "Villa", "Maison"}
+HOUSE_TYPES = {"Maison individuelle", "Villa", "Maison", "Hôtel Particulier"}
 
 
 def _classify_type(type_bien):
@@ -1099,6 +1099,55 @@ def m2(v):
         return "—"
 
 
+CSV_SOURCE_TAG = "CSV Belfin/Champel60"
+
+
+def load_comparables_csv(path=None):
+    """Charge (ou recharge) les comparables depuis data/comparables.csv.
+
+    Idempotent : supprime les entrées précédentes taggées CSV_SOURCE_TAG puis réinjecte.
+    Ainsi, si on modifie le CSV et redéploie, la base reflète toujours le CSV.
+    """
+    import csv as _csv
+    path = path or os.path.join(os.path.dirname(__file__), "data", "comparables.csv")
+    if not os.path.exists(path):
+        app.logger.info(f"CSV comparables absent ({path}), skip.")
+        return 0
+
+    # Nettoyer d'abord les anciennes entrées taggées CSV
+    RefPrice.query.filter_by(source=CSV_SOURCE_TAG).delete()
+    db.session.commit()
+
+    inserted = 0
+    with open(path, encoding="utf-8") as f:
+        reader = _csv.DictReader(f)
+        for row in reader:
+            try:
+                prix_m2 = float(row.get("prix_m2") or 0)
+                surface = float(row.get("surface")) if row.get("surface") else None
+                if not prix_m2:
+                    continue
+                # kind = sold s'il y a une date de vente, sinon retenu par défaut
+                kind = "sold" if row.get("date_vente") else "sold"
+                r = RefPrice(
+                    quartier=(row.get("quartier") or "").strip(),
+                    adresse=(row.get("adresse") or "").strip(),
+                    prix_m2=prix_m2,
+                    annee=(row.get("annee") or "").strip(),
+                    source=CSV_SOURCE_TAG,
+                    kind=kind,
+                    surface=surface,
+                    type_bien=(row.get("type_bien") or "").strip() or None,
+                )
+                db.session.add(r)
+                inserted += 1
+            except Exception as e:
+                app.logger.warning(f"Ligne CSV ignorée : {row} — {e}")
+    db.session.commit()
+    app.logger.info(f"CSV comparables : {inserted} lignes chargées depuis {path}")
+    return inserted
+
+
 def seed():
     db.create_all()
     if RefPrice.query.first():
@@ -1146,6 +1195,7 @@ with app.app_context():
     db.create_all()
     _migrate()
     seed()
+    load_comparables_csv()  # recharge les comparables du CSV à chaque démarrage
 
 
 if __name__ == "__main__":

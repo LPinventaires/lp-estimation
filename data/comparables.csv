@@ -1,0 +1,11 @@
+id,adresse,quartier,type_bien,surface,prix,prix_m2,annee,etat,date_vente
+1,Avenue de Champel 56,Champel,Hôtel Particulier,450,6100000,13555,2025,À rénover,2025-01-15
+2,Avenue de Champel 58,Champel,Hôtel Particulier,450,5800000,12888,2024,Bon état,2024-03-20
+3,Avenue de Champel 48,Champel,Hôtel Particulier,300,4250000,14166,2018,Bon état,2018-06-10
+4,Avenue de Champel 50,Champel,Hôtel Particulier,220,3300000,15000,2019,Bon état,2019-05-15
+5,Chemin de Kermely 5,Champel,Hôtel Particulier,415,8500000,20481,2025,Excellent,2025-02-01
+6,Avenue de Champel 14,Champel,Appartement,350,8500000,24285,2025,Excellent,2025-01-20
+7,Chemin Tour de Champel 12,Champel,Appartement,274,4900000,17883,2024,Bon état,2024-04-10
+8,Chemin de Beau Soleil 8,Champel,Appartement,350,7900000,22571,2024,Excellent,2024-05-05
+9,Avenue de Miremont 17,Champel,Hôtel Particulier,360,7850000,21805,2020,Excellent,2020-08-20
+10,Avenue de Miremont 19,Champel,Villa,430,13100000,30465,2023,Excellent,2023-11-15
