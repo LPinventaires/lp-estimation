@@ -48,6 +48,9 @@ class RefPrice(db.Model):
     kind = db.Column(db.String(10), default="sold")  # sold | forsale | retenu
     surface = db.Column(db.Float, nullable=True)          # m², si connu
     type_bien = db.Column(db.String(80), nullable=True)   # Appartement, Villa, etc.
+    prix_total = db.Column(db.Float, nullable=True)       # prix total CHF, si connu
+    description = db.Column(db.Text, nullable=True)       # description riche (comparables enrichis)
+    reference = db.Column(db.String(80), nullable=True)   # référence interne (ex: HP12134B)
 
 
 class Estimation(db.Model):
@@ -418,9 +421,19 @@ def find_comparables(quartier, address, surface, type_bien, current_eid=None, us
         comps = _search(neighbors, None, False)
         match_level = "voisins, tous types"
 
-    # Tri : LP d'abord (fiables), puis ventes, puis retenus, puis à vendre
+    # Tri : comparables avec description riche d'abord (utile pour le rapport),
+    # puis année la plus récente, puis LP > vendus > retenus > à vendre.
     kind_order = {"estimation": 0, "sold": 1, "retenu": 2, "forsale": 3}
-    comps.sort(key=lambda c: (kind_order.get(c["kind"], 9), -(c.get("prix_m2") or 0)))
+    def _year_of(c):
+        try:
+            return int(str(c.get("annee") or "0")[:4])
+        except ValueError:
+            return 0
+    comps.sort(key=lambda c: (
+        0 if c.get("description") else 1,           # descriptions d'abord
+        -_year_of(c),                                # année desc
+        kind_order.get(c["kind"], 9),                # LP → sold → retenu → forsale
+    ))
 
     # Prix proposé = moyenne des prix/m² des comparables vendus / LP / retenus
     sold_pm2 = [c["prix_m2"] for c in comps if c["kind"] in ("sold", "retenu", "estimation")]
@@ -493,6 +506,8 @@ def _do_search(quartiers, surface, surface_tol, type_bien, current_eid=None, use
                 "etat": est.etat or "",
                 "atouts": est.atouts or "",
                 "inconvenients": est.inconvenients or "",
+                "description": est.description or "",
+                "reference": "",
                 "kind": "estimation",
                 "source": "Estimation LP",
                 "date": est.created_at.strftime("%m/%Y") if est.created_at else "",
@@ -515,11 +530,13 @@ def _do_search(quartiers, surface, surface_tol, type_bien, current_eid=None, use
             "type_bien": r.type_bien or "",
             "surface": r.surface,
             "prix_m2": r.prix_m2,
-            "prix_total": prix_total,
+            "prix_total": r.prix_total or prix_total,
             "annee": r.annee or "",
             "etat": "",
             "atouts": "",
             "inconvenients": "",
+            "description": r.description or "",
+            "reference": r.reference or "",
             "kind": r.kind or "sold",
             "source": r.source or "Marché",
             "date": r.annee or "",
@@ -1191,12 +1208,29 @@ def m2(v):
 
 CSV_SOURCE_TAG = "CSV Belfin/Champel60"
 CSV_LP_SOURCE_TAG = "CSV LP consolidé"
+CSV_ENRICHED_TAG = "CSV enrichi (Champel60)"
 
 CSV_FILES = [
-    # (chemin_relatif, source_tag)
-    ("data/comparables.csv", CSV_SOURCE_TAG),
-    ("data/comparables-lp.csv", CSV_LP_SOURCE_TAG),
+    # (chemin_relatif, source_tag, enriched_bool)
+    ("data/comparables.csv", CSV_SOURCE_TAG, False),
+    ("data/comparables-lp.csv", CSV_LP_SOURCE_TAG, False),
+    ("data/comparables_enrichis.csv", CSV_ENRICHED_TAG, True),
 ]
+
+
+def _parse_swiss_number(v):
+    """Parse '6’100’000' ou '13'555' → 6100000. Retourne None si invalide."""
+    if v is None:
+        return None
+    s = str(v).strip()
+    if not s:
+        return None
+    # Enlève apostrophes typographiques ’ ' et espaces
+    s = s.replace("’", "").replace("'", "").replace(" ", "").replace(" ", "")
+    try:
+        return float(s)
+    except ValueError:
+        return None
 
 
 def load_comparables_csv():
@@ -1209,11 +1243,11 @@ def load_comparables_csv():
     base = os.path.dirname(__file__)
 
     # Purge des anciennes entrées CSV (peu importe le tag)
-    RefPrice.query.filter(RefPrice.source.in_([tag for _, tag in CSV_FILES])).delete(synchronize_session=False)
+    RefPrice.query.filter(RefPrice.source.in_([tag for _, tag, _ in CSV_FILES])).delete(synchronize_session=False)
     db.session.commit()
 
     total = 0
-    for rel_path, source_tag in CSV_FILES:
+    for rel_path, source_tag, enriched in CSV_FILES:
         path = os.path.join(base, rel_path)
         if not os.path.exists(path):
             app.logger.info(f"CSV absent ({path}), skip.")
@@ -1222,20 +1256,47 @@ def load_comparables_csv():
         with open(path, encoding="utf-8") as f:
             for row in _csv.DictReader(f):
                 try:
-                    prix_m2 = float(row.get("prix_m2") or 0)
-                    surface = float(row.get("surface")) if row.get("surface") else None
-                    if not prix_m2:
-                        continue
-                    r = RefPrice(
-                        quartier=(row.get("quartier") or "").strip(),
-                        adresse=(row.get("adresse") or "").strip(),
-                        prix_m2=prix_m2,
-                        annee=(row.get("annee") or "").strip(),
-                        source=source_tag,
-                        kind="sold",
-                        surface=surface,
-                        type_bien=(row.get("type_bien") or "").strip() or None,
-                    )
+                    if enriched:
+                        # Format enrichi : surface_m2, prix_chf, prix_m2 (avec apostrophes),
+                        # description multi-lignes, reference
+                        surface = _parse_swiss_number(row.get("surface_m2"))
+                        prix_total = _parse_swiss_number(row.get("prix_chf"))
+                        prix_m2 = _parse_swiss_number(row.get("prix_m2"))
+                        # Calculer prix/m² si absent
+                        if not prix_m2 and prix_total and surface:
+                            prix_m2 = round(prix_total / surface)
+                        if not prix_m2:
+                            continue
+                        # Nettoyer l'adresse (peut contenir des retours à la ligne)
+                        adresse = " ".join((row.get("adresse") or "").split())
+                        r = RefPrice(
+                            quartier=(row.get("quartier") or "").strip(),
+                            adresse=adresse,
+                            prix_m2=prix_m2,
+                            prix_total=prix_total,
+                            annee=(row.get("annee") or "").strip(),
+                            source=source_tag,
+                            kind="sold",
+                            surface=surface,
+                            type_bien=(row.get("type_bien") or "").strip() or None,
+                            description=(row.get("description") or "").strip() or None,
+                            reference=(row.get("reference") or "").strip() or None,
+                        )
+                    else:
+                        prix_m2 = float(row.get("prix_m2") or 0)
+                        surface = float(row.get("surface")) if row.get("surface") else None
+                        if not prix_m2:
+                            continue
+                        r = RefPrice(
+                            quartier=(row.get("quartier") or "").strip(),
+                            adresse=(row.get("adresse") or "").strip(),
+                            prix_m2=prix_m2,
+                            annee=(row.get("annee") or "").strip(),
+                            source=source_tag,
+                            kind="sold",
+                            surface=surface,
+                            type_bien=(row.get("type_bien") or "").strip() or None,
+                        )
                     db.session.add(r)
                     inserted += 1
                 except Exception as e:
@@ -1281,6 +1342,9 @@ def _migrate():
         "ALTER TABLE estimation ADD COLUMN user_id INTEGER",
         "ALTER TABLE ref_price ADD COLUMN surface FLOAT",
         "ALTER TABLE ref_price ADD COLUMN type_bien VARCHAR(80)",
+        "ALTER TABLE ref_price ADD COLUMN prix_total FLOAT",
+        "ALTER TABLE ref_price ADD COLUMN description TEXT",
+        "ALTER TABLE ref_price ADD COLUMN reference VARCHAR(80)",
     ):
         try:
             db.session.execute(text(stmt))

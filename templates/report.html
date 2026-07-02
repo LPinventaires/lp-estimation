@@ -84,73 +84,68 @@
       </div>
       {% endif %}
 
-      <table>
-        <thead>
-          <tr>
-            <th>Adresse</th>
-            <th>Type</th>
-            <th class="num">Surface</th>
-            <th class="num">Prix total</th>
-            <th class="num">Prix/m²</th>
-            <th>État / Année</th>
-            <th>Statut</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for c in comparables %}
-          <tr>
-            <td>
-              <strong>{{ c.adresse }}</strong>
-              {% if c.source == "Estimation LP" %}
-                <div style="color:var(--accent2);font-size:11px;margin-top:2px">{{ c.source }}{% if c.date %} · {{ c.date }}{% endif %}</div>
-              {% elif c.source %}
-                <div style="color:var(--muted);font-size:11px;margin-top:2px">{{ c.source }}</div>
+      {# --- 3 cartes maximum, tri par pertinence (année desc, descriptions d'abord) --- #}
+      <div style="display:grid;grid-template-columns:1fr;gap:14px;margin-top:8px">
+        {% for c in comparables[:3] %}
+        <div style="background:linear-gradient(180deg,var(--card) 0%,var(--card-hi) 100%);border:1px solid var(--line-strong);border-radius:12px;padding:18px 22px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden">
+          <span style="position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--accent)"></span>
+
+          <div style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:baseline">
+            <div style="flex:1;min-width:220px">
+              <div style="font-family:var(--serif);font-size:17px;font-weight:600;color:var(--ink);line-height:1.3">{{ c.adresse }}</div>
+              <div style="color:var(--muted);font-size:12.5px;margin-top:4px;letter-spacing:.02em">
+                {{ c.type_bien or '—' }}
+                {% if c.annee %} · <span style="color:var(--accent2);font-weight:600">{{ c.annee }}</span>{% endif %}
+                {% if c.surface %} · {{ c.surface|m2 }} m²{% endif %}
+              </div>
+            </div>
+            <div style="text-align:right">
+              {% if c.prix_total %}
+                <div style="font-family:var(--serif);font-size:19px;font-weight:600;color:var(--ink)">CHF {{ c.prix_total|chf }}</div>
               {% endif %}
-            </td>
-            <td>{{ c.type_bien or '—' }}</td>
-            <td class="num">{% if c.surface %}{{ c.surface|m2 }} m²{% else %}—{% endif %}</td>
-            <td class="num">{% if c.prix_total %}{{ c.prix_total|chf }}{% else %}—{% endif %}</td>
-            <td class="num"><strong>{{ c.prix_m2|chf }}</strong></td>
-            <td>
-              {% if c.etat %}{{ c.etat }}{% endif %}
-              {% if c.etat and c.annee %} · {% endif %}
-              {% if c.annee %}{{ c.annee }}{% endif %}
-            </td>
-            <td>
-              {% if c.kind == "estimation" %}
-                <span class="pill" style="background:var(--accent-soft)">LP</span>
-              {% elif c.kind == "sold" %}
-                <span class="pill" style="background:#d8e8d0;color:#3a5a2e;border-color:#a8c99a">Vendu</span>
-              {% elif c.kind == "retenu" %}
-                <span class="pill" style="background:var(--accent);color:#fff">Retenu</span>
-              {% elif c.kind == "forsale" %}
-                <span class="pill" style="background:#f0e2c8">À vendre</span>
-              {% else %}
-                <span class="pill">{{ c.kind }}</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% if c.atouts or c.inconvenients %}
-          <tr style="background:var(--bg3)">
-            <td colspan="7" style="padding:8px 14px;font-size:12.5px;border-top:none;color:var(--ink-soft)">
-              {% if c.atouts %}
-                <div style="margin-bottom:{% if c.inconvenients %}4px{% else %}0{% endif %}">
-                  <span style="color:var(--good);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px">+ Atouts</span>
-                  <span style="margin-left:8px;font-style:italic">{{ c.atouts|replace('\n', ' · ') }}</span>
-                </div>
-              {% endif %}
-              {% if c.inconvenients %}
-                <div>
-                  <span style="color:var(--danger);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px">− Inconvénients</span>
-                  <span style="margin-left:8px;font-style:italic">{{ c.inconvenients|replace('\n', ' · ') }}</span>
-                </div>
-              {% endif %}
-            </td>
-          </tr>
+              <div style="color:var(--accent2);font-size:13px;font-weight:600;letter-spacing:.02em">{{ c.prix_m2|chf }} CHF/m²</div>
+            </div>
+          </div>
+
+          {% if c.description %}
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink-soft);font-size:13.5px;line-height:1.55;font-style:italic">
+            {{ c.description|replace('\n', ' ')|trim }}
+          </div>
+          {% elif c.atouts or c.inconvenients %}
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink-soft);font-size:13px">
+            {% if c.atouts %}<div style="margin-bottom:4px"><strong style="color:var(--good)">+</strong> <em>{{ c.atouts|replace('\n', ' · ') }}</em></div>{% endif %}
+            {% if c.inconvenients %}<div><strong style="color:var(--danger)">−</strong> <em>{{ c.inconvenients|replace('\n', ' · ') }}</em></div>{% endif %}
+          </div>
           {% endif %}
-          {% endfor %}
-        </tbody>
-      </table>
+
+          <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            {% if c.kind == "estimation" %}
+              <span class="pill" style="background:var(--accent-soft)">LP</span>
+            {% elif c.kind == "sold" %}
+              <span class="pill" style="background:#d8e8d0;color:#3a5a2e;border-color:#a8c99a">Vendu</span>
+            {% elif c.kind == "retenu" %}
+              <span class="pill" style="background:var(--accent);color:#fff">Retenu</span>
+            {% elif c.kind == "forsale" %}
+              <span class="pill" style="background:#f0e2c8">À vendre</span>
+            {% endif %}
+            {% if c.reference %}
+              <span style="color:var(--muted);font-size:11px;letter-spacing:.04em">Réf. {{ c.reference }}</span>
+            {% endif %}
+            {% if c.source and c.kind != "estimation" %}
+              <span style="color:var(--muted);font-size:11px;margin-left:auto">{{ c.source }}</span>
+            {% elif c.source == "Estimation LP" and c.date %}
+              <span style="color:var(--muted);font-size:11px;margin-left:auto">Estimation LP · {{ c.date }}</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if comparables|length > 3 %}
+        <p style="text-align:center;color:var(--muted);font-size:12.5px;margin:16px 0 0;font-style:italic">
+          + {{ comparables|length - 3 }} autre{{ 's' if comparables|length - 3 > 1 else '' }} comparable{{ 's' if comparables|length - 3 > 1 else '' }} disponible{{ 's' if comparables|length - 3 > 1 else '' }} dans la base — les 3 plus pertinents sont affichés.
+        </p>
+      {% endif %}
 
       {% if proposed_pm2 and e.prix_m2 %}
         {% set diff_pct = ((e.prix_m2 - proposed_pm2) / proposed_pm2 * 100)|round(1) %}
