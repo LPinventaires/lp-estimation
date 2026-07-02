@@ -38,7 +38,7 @@ APP_PASSWORD = os.environ.get("APP_PASSWORD", "LP-estimation")
 
 # ----------------------- MODÈLES -----------------------
 class RefPrice(db.Model):
-    """Référence prix/m² appartements, par adresse / quartier (issue des estimations LP)."""
+    """Référence prix/m² par adresse / quartier (issue des estimations LP et du marché)."""
     id = db.Column(db.Integer, primary_key=True)
     quartier = db.Column(db.String(120))
     adresse = db.Column(db.String(200))
@@ -46,6 +46,8 @@ class RefPrice(db.Model):
     annee = db.Column(db.String(20))
     source = db.Column(db.String(200))
     kind = db.Column(db.String(10), default="sold")  # sold | forsale | retenu
+    surface = db.Column(db.Float, nullable=True)          # m², si connu
+    type_bien = db.Column(db.String(80), nullable=True)   # Appartement, Villa, etc.
 
 
 class Estimation(db.Model):
@@ -306,17 +308,14 @@ def _addr_match(adresse, r):
     return key in b or b[:14] in a
 
 
-def ref_for(quartier, adresse):
-    """Retourne (prix_m2 proposé, comparables de la localité).
-
-    Le prix proposé privilégie les ventes de l'adresse exacte, sinon la médiane du quartier.
-    Les comparables affichés couvrent l'adresse ET le quartier (plus utile dans le rapport).
+def ref_for(quartier, adresse, surface=None, type_bien=None):
+    """Legacy — retourne un pool d'objets RefPrice (utilisé par les vieux appelants).
+    Voir find_comparables() pour la nouvelle version enrichie.
     """
     refs = RefPrice.query.all()
     by_addr = [r for r in refs if _addr_match(adresse, r)]
     by_quartier = [r for r in refs if quartier and r.quartier and
                    r.quartier.lower() == quartier.lower()]
-    # pool = union (adresse + quartier), sans doublon
     pool, seen = [], set()
     for r in by_addr + by_quartier:
         if r.id not in seen:
@@ -331,6 +330,112 @@ def ref_for(quartier, adresse):
     quartier_sold = [r.prix_m2 for r in by_quartier if r.prix_m2 and r.kind in ("sold", "retenu")]
     proposed = median(addr_sold) or median(quartier_sold)
     return proposed, pool
+
+
+def _same_type_category(a, b):
+    """Deux types tombent-ils dans la même famille (appartements OU maisons) ?"""
+    if not a or not b:
+        return False
+    a, b = a.strip(), b.strip()
+    if a == b:
+        return True
+    apt = APARTMENT_TYPES  # défini plus bas dans le fichier
+    house = HOUSE_TYPES
+    return (a in apt and b in apt) or (a in house and b in house)
+
+
+def find_comparables(quartier, address, surface, type_bien, current_eid=None, user_id=None):
+    """Trouve les comparables réels pour un bien : même quartier, surface ±20 %, même catégorie.
+
+    Sources combinées :
+      1. Estimations passées de l'utilisateur (surface + type connus) — pertinent en priorité
+      2. RefPrice (base de références du marché — filtre par quartier + surface si dispo)
+
+    Retourne (proposed_prix_m2, comparables_dicts, stats) où chaque dict a :
+      adresse, quartier, type_bien, surface, prix_m2, prix_total, annee, kind, source
+    """
+    comparables = []
+
+    # ---- Source 1 : estimations passées de l'utilisateur ----
+    if user_id:
+        q = Estimation.query.filter_by(user_id=user_id)
+        if current_eid:
+            q = q.filter(Estimation.id != current_eid)
+        for est in q.all():
+            if quartier and est.quartier and est.quartier.lower() != quartier.lower():
+                continue
+            if type_bien and not _same_type_category(est.type_bien, type_bien):
+                continue
+            if surface and est.surface:
+                lo, hi = surface * 0.8, surface * 1.2
+                if not (lo <= est.surface <= hi):
+                    continue
+            if not est.prix_m2 or not est.surface:
+                continue
+            comparables.append({
+                "adresse": est.address or "—",
+                "quartier": est.quartier or "",
+                "type_bien": est.type_bien or "",
+                "surface": est.surface,
+                "prix_m2": est.prix_m2,
+                "prix_total": est.prix_presentation,
+                "annee": est.annee or "",
+                "etat": est.etat or "",
+                "kind": "estimation",
+                "source": "Estimation LP",
+                "date": est.created_at.strftime("%m/%Y") if est.created_at else "",
+            })
+
+    # ---- Source 2 : RefPrice (marché) ----
+    for r in RefPrice.query.all():
+        if quartier and r.quartier and r.quartier.lower() != quartier.lower():
+            continue
+        if r.type_bien and type_bien and not _same_type_category(r.type_bien, type_bien):
+            continue
+        if r.surface and surface:
+            lo, hi = surface * 0.8, surface * 1.2
+            if not (lo <= r.surface <= hi):
+                continue
+        if not r.prix_m2:
+            continue
+        prix_total = (r.prix_m2 * r.surface) if r.surface else None
+        comparables.append({
+            "adresse": r.adresse or "—",
+            "quartier": r.quartier or "",
+            "type_bien": r.type_bien or "",
+            "surface": r.surface,
+            "prix_m2": r.prix_m2,
+            "prix_total": prix_total,
+            "annee": r.annee or "",
+            "etat": "",
+            "kind": r.kind or "sold",
+            "source": r.source or "Marché",
+            "date": r.annee or "",
+        })
+
+    # ---- Prix proposé = moyenne des prix/m² des comparables directs (ventes / retenu) ----
+    sold_pm2 = [c["prix_m2"] for c in comparables if c["kind"] in ("sold", "retenu", "estimation")]
+    forsale_pm2 = [c["prix_m2"] for c in comparables if c["kind"] == "forsale"]
+    proposed = None
+    if sold_pm2:
+        proposed = round(sum(sold_pm2) / len(sold_pm2))
+    elif forsale_pm2:
+        # tempère un peu le "à vendre" (souvent surcoté)
+        proposed = round(sum(forsale_pm2) / len(forsale_pm2) * 0.95)
+
+    # Tri : ventes/retenu d'abord (les plus fiables), puis à vendre
+    kind_order = {"estimation": 0, "sold": 1, "retenu": 2, "forsale": 3}
+    comparables.sort(key=lambda c: (kind_order.get(c["kind"], 9), -(c.get("prix_m2") or 0)))
+
+    stats = {
+        "total": len(comparables),
+        "n_sold": sum(1 for c in comparables if c["kind"] in ("sold", "retenu", "estimation")),
+        "n_forsale": sum(1 for c in comparables if c["kind"] == "forsale"),
+        "min_pm2": min((c["prix_m2"] for c in comparables), default=None),
+        "max_pm2": max((c["prix_m2"] for c in comparables), default=None),
+        "avg_pm2": proposed,
+    }
+    return proposed, comparables, stats
 
 
 # ----------------------- ROUTES -----------------------
@@ -581,11 +686,19 @@ def estimation_new():
 @login_required
 def estimation_report(eid):
     e = own_estimation_or_404(eid)
-    _, pool = ref_for(e.quartier, e.address)
-    sold = [r for r in pool if r.kind in ("sold", "retenu")]
-    forsale = [r for r in pool if r.kind == "forsale"]
+    # Comparables filtrés (même quartier + surface ±20% + même catégorie)
+    proposed_pm2, comparables, stats = find_comparables(
+        e.quartier, e.address, e.surface, e.type_bien,
+        current_eid=e.id, user_id=session.get("user_id"),
+    )
+    # On garde build_report pour la partie "corps du rapport" LP (méthode, calcul, réserves)
+    _, legacy_pool = ref_for(e.quartier, e.address)
+    sold = [r for r in legacy_pool if r.kind in ("sold", "retenu")]
+    forsale = [r for r in legacy_pool if r.kind == "forsale"]
     html = build_report(e, sold, forsale)
-    return render_template("report.html", e=e, report_html=html)
+    return render_template("report.html", e=e, report_html=html,
+                           comparables=comparables, stats=stats,
+                           proposed_pm2=proposed_pm2)
 
 
 @app.route("/estimation/<int:eid>/delete", methods=["POST"])
@@ -1017,11 +1130,16 @@ def seed():
 def _migrate():
     """Ajoute les colonnes ajoutées après le déploiement initial (sans framework de migration)."""
     from sqlalchemy import text
-    try:
-        db.session.execute(text("ALTER TABLE estimation ADD COLUMN user_id INTEGER"))
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
+    for stmt in (
+        "ALTER TABLE estimation ADD COLUMN user_id INTEGER",
+        "ALTER TABLE ref_price ADD COLUMN surface FLOAT",
+        "ALTER TABLE ref_price ADD COLUMN type_bien VARCHAR(80)",
+    ):
+        try:
+            db.session.execute(text(stmt))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
 
 with app.app_context():

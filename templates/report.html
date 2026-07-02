@@ -2,16 +2,136 @@
 {% block title %}Rapport — {{ e.address }}{% endblock %}
 {% block content %}
 <div class="report-actions no-print">
-  <a class="btn secondary" href="{{ url_for('index') }}">← Retour</a>
-  <button class="btn" onclick="window.print()">Imprimer / PDF</button>
+  <a class="btn secondary" href="{{ url_for('dashboard') }}">← Tableau de bord</a>
+  <div style="display:flex;gap:10px">
+    <a class="btn secondary" href="{{ url_for('estimation_export_pdf', eid=e.id) }}">Export PDF</a>
+    <button class="btn" onclick="window.print()">Imprimer</button>
+  </div>
 </div>
+
 <div class="report">
   <div class="head">
     <div class="logo">LEONARD PROPERTIES</div>
     <div class="right muted">Rapport d'estimation hédoniste<br>{{ e.created_at.strftime('%d.%m.%Y') }}</div>
   </div>
-  <h1 style="color:#1f3864">{{ e.address or 'Bien à estimer' }}</h1>
-  <p class="muted" style="color:#6b7280">{{ e.type_bien }}{% if e.surface %} · {{ e.surface|m2 }} m²{% endif %}{% if e.quartier %} · {{ e.quartier }}{% endif %}</p>
+
+  <h1 style="font-family:var(--serif);color:var(--ink);margin:16px 0 6px;font-size:28px">{{ e.address or 'Bien à estimer' }}</h1>
+  <p style="color:var(--muted);margin:0 0 24px">
+    {{ e.type_bien }}{% if e.surface %} · {{ e.surface|m2 }} m²{% endif %}{% if e.quartier %} · {{ e.quartier }}{% endif %}
+  </p>
+
+  {# --- SYNTHÈSE DE L'ESTIMATION --- #}
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:24px 0 30px;padding:22px;background:var(--bg2);border:1px solid var(--line-strong);border-radius:14px">
+    <div>
+      <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Valeur vénale</div>
+      <div style="font-family:var(--serif);font-size:26px;color:var(--ink);font-weight:600">CHF {{ e.valeur_venale|chf }}</div>
+    </div>
+    <div>
+      <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Prix/m²</div>
+      <div style="font-family:var(--serif);font-size:26px;color:var(--accent2);font-weight:600">CHF {{ e.prix_m2|chf }}</div>
+    </div>
+    <div>
+      <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Prix de présentation</div>
+      <div style="font-family:var(--serif);font-size:26px;color:var(--ink);font-weight:600">CHF {{ e.prix_presentation|chf }}</div>
+    </div>
+  </div>
+
+  {# --- COMPARABLES TROUVÉS --- #}
+  <div style="margin:30px 0 24px">
+    <h2 style="font-family:var(--serif);color:var(--ink);border-bottom:1.5px solid var(--accent);padding-bottom:8px;margin:0 0 6px">
+      Comparables trouvés{% if stats and stats.total %} <span style="color:var(--accent2);font-weight:600">({{ stats.total }})</span>{% endif %}
+    </h2>
+    <p style="color:var(--muted);margin:6px 0 16px;font-size:13.5px">
+      Filtrés par <strong>même quartier</strong>, <strong>surface ±20 %</strong>{% if e.type_bien %} et <strong>même famille de bien</strong>{% endif %} — puisés dans les estimations LP et la base de références.
+    </p>
+
+    {% if not comparables %}
+      <div style="padding:16px;background:var(--bg3);border:1px dashed var(--line-strong);border-radius:10px;color:var(--muted);text-align:center">
+        Aucun comparable ne correspond aux critères stricts (quartier + surface ±20 % + type). Élargis la surface saisie ou ajoute des estimations LP dans ce quartier pour enrichir la base.
+      </div>
+    {% else %}
+      {% if stats %}
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="pill">Total : {{ stats.total }}</div>
+        <div class="pill">Ventes / LP : {{ stats.n_sold }}</div>
+        {% if stats.n_forsale %}<div class="pill">À vendre : {{ stats.n_forsale }}</div>{% endif %}
+        {% if stats.avg_pm2 %}<div class="pill" style="background:var(--accent);color:#fff">Prix/m² moyen : {{ stats.avg_pm2|chf }} CHF</div>{% endif %}
+        {% if stats.min_pm2 and stats.max_pm2 %}
+          <div class="pill" style="background:transparent">
+            Fourchette : {{ stats.min_pm2|chf }} – {{ stats.max_pm2|chf }} CHF/m²
+          </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <table>
+        <thead>
+          <tr>
+            <th>Adresse</th>
+            <th>Type</th>
+            <th class="num">Surface</th>
+            <th class="num">Prix total</th>
+            <th class="num">Prix/m²</th>
+            <th>État / Année</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in comparables %}
+          <tr>
+            <td>
+              <strong>{{ c.adresse }}</strong>
+              {% if c.source == "Estimation LP" %}
+                <div style="color:var(--accent2);font-size:11px;margin-top:2px">{{ c.source }}{% if c.date %} · {{ c.date }}{% endif %}</div>
+              {% elif c.source %}
+                <div style="color:var(--muted);font-size:11px;margin-top:2px">{{ c.source }}</div>
+              {% endif %}
+            </td>
+            <td>{{ c.type_bien or '—' }}</td>
+            <td class="num">{% if c.surface %}{{ c.surface|m2 }} m²{% else %}—{% endif %}</td>
+            <td class="num">{% if c.prix_total %}{{ c.prix_total|chf }}{% else %}—{% endif %}</td>
+            <td class="num"><strong>{{ c.prix_m2|chf }}</strong></td>
+            <td>
+              {% if c.etat %}{{ c.etat }}{% endif %}
+              {% if c.etat and c.annee %} · {% endif %}
+              {% if c.annee %}{{ c.annee }}{% endif %}
+            </td>
+            <td>
+              {% if c.kind == "estimation" %}
+                <span class="pill" style="background:var(--accent-soft)">LP</span>
+              {% elif c.kind == "sold" %}
+                <span class="pill" style="background:#d8e8d0;color:#3a5a2e;border-color:#a8c99a">Vendu</span>
+              {% elif c.kind == "retenu" %}
+                <span class="pill" style="background:var(--accent);color:#fff">Retenu</span>
+              {% elif c.kind == "forsale" %}
+                <span class="pill" style="background:#f0e2c8">À vendre</span>
+              {% else %}
+                <span class="pill">{{ c.kind }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if proposed_pm2 and e.prix_m2 %}
+        {% set diff_pct = ((e.prix_m2 - proposed_pm2) / proposed_pm2 * 100)|round(1) %}
+        <p style="margin-top:16px;padding:12px 16px;background:var(--bg3);border-left:3px solid var(--accent);border-radius:6px;font-size:13.5px">
+          <strong>Positionnement :</strong> le prix/m² retenu ({{ e.prix_m2|chf }} CHF) se situe
+          {% if diff_pct > 3 %}
+            <strong style="color:var(--accent2)">{{ diff_pct }} % au-dessus</strong>
+          {% elif diff_pct < -3 %}
+            <strong style="color:var(--good)">{{ diff_pct|abs }} % en-dessous</strong>
+          {% else %}
+            <strong>en ligne avec</strong>
+          {% endif %}
+          la moyenne des comparables ({{ proposed_pm2|chf }} CHF).
+        </p>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  {# --- RAPPORT LP GÉNÉRÉ --- #}
   {{ report_html|safe }}
 </div>
 {% endblock %}
