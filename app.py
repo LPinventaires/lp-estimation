@@ -1663,35 +1663,13 @@ def m2(v):
 CSV_SOURCE_TAG = "CSV Belfin/Champel60"
 CSV_LP_SOURCE_TAG = "CSV LP consolidé"
 CSV_ENRICHED_TAG = "CSV enrichi (Champel60)"
-CSV_ESTIMATIONS_LP_TAG = "Estimation LP passée"
 
 CSV_FILES = [
-    # (chemin_relatif, source_tag, format)
-    #   format: 'basic' | 'enriched' | 'estimation_lp'
-    ("data/comparables.csv", CSV_SOURCE_TAG, "basic"),
-    ("data/comparables-lp.csv", CSV_LP_SOURCE_TAG, "basic"),
-    ("data/comparables_enrichis.csv", CSV_ENRICHED_TAG, "enriched"),
-    ("data/comparables_estimations_lp.csv", CSV_ESTIMATIONS_LP_TAG, "estimation_lp"),
+    # (chemin_relatif, source_tag, enriched_bool)
+    ("data/comparables.csv", CSV_SOURCE_TAG, False),
+    ("data/comparables-lp.csv", CSV_LP_SOURCE_TAG, False),
+    ("data/comparables_enrichis.csv", CSV_ENRICHED_TAG, True),
 ]
-
-
-def _normalize_type(t):
-    """Nettoie les variations 'Villa Individuelle' / 'villa individuelle' / etc.
-    Retourne la version canonique ou t si inconnu."""
-    if not t: return ""
-    tt = t.strip().lower()
-    if "hôtel particulier" in tt or "hp" == tt: return "Hôtel Particulier"
-    if "château" in tt: return "Villa"
-    if "villa" in tt: return "Villa"
-    if "maison" in tt: return "Maison individuelle"
-    if "townhouse" in tt: return "Maison individuelle"
-    if "attique" in tt: return "Attique"
-    if "penthouse" in tt: return "Penthouse"
-    if "duplex" in tt: return "Duplex"
-    if "triplex" in tt: return "Triplex"
-    if "appartement" in tt or "ppe" in tt: return "Appartement"
-    if "parcelle" in tt or "terrain" in tt: return ""  # skip non-résidentiel
-    return t.strip()
 
 
 def _parse_swiss_number(v):
@@ -1723,7 +1701,7 @@ def load_comparables_csv():
     db.session.commit()
 
     total = 0
-    for rel_path, source_tag, fmt in CSV_FILES:
+    for rel_path, source_tag, enriched in CSV_FILES:
         path = os.path.join(base, rel_path)
         if not os.path.exists(path):
             app.logger.info(f"CSV absent ({path}), skip.")
@@ -1732,41 +1710,7 @@ def load_comparables_csv():
         with open(path, encoding="utf-8") as f:
             for row in _csv.DictReader(f):
                 try:
-                    if fmt == "estimation_lp":
-                        # Format : address, quartier, type_bien, surface, annee,
-                        #          prix_m2_retenu, valeur_venale, prix_presentation, description
-                        adresse = " ".join((row.get("address") or "").split()).strip()
-                        if not adresse:
-                            continue
-                        type_bien = _normalize_type(row.get("type_bien") or "")
-                        if not type_bien:
-                            continue  # non résidentiel, skip
-                        surface = _parse_swiss_number(row.get("surface"))
-                        prix_m2 = _parse_swiss_number(row.get("prix_m2_retenu"))
-                        valeur = _parse_swiss_number(row.get("valeur_venale"))
-                        pres = _parse_swiss_number(row.get("prix_presentation"))
-                        # Recalcule prix_m2 si absent mais on a valeur/surface
-                        if not prix_m2 and valeur and surface:
-                            prix_m2 = round(valeur / surface)
-                        if not prix_m2 and pres and surface:
-                            # prix de présentation = valeur × (1 + marge ~7 %)
-                            prix_m2 = round(pres / 1.07 / surface)
-                        if not prix_m2:
-                            continue
-                        r = RefPrice(
-                            quartier=(row.get("quartier") or "").strip(),
-                            adresse=adresse,
-                            prix_m2=prix_m2,
-                            prix_total=valeur or pres,
-                            annee=(row.get("annee") or "").strip(),
-                            source=source_tag,
-                            kind="retenu",  # estimation LP passée = prix retenu par le courtier
-                            surface=surface,
-                            type_bien=type_bien,
-                            description=(row.get("description") or "").strip() or None,
-                            reference=None,
-                        )
-                    elif fmt == "enriched":
+                    if enriched:
                         # Format enrichi : surface_m2, prix_chf, prix_m2 (avec apostrophes),
                         # description multi-lignes, reference
                         surface = _parse_swiss_number(row.get("surface_m2"))
@@ -1792,7 +1736,7 @@ def load_comparables_csv():
                             description=(row.get("description") or "").strip() or None,
                             reference=(row.get("reference") or "").strip() or None,
                         )
-                    else:  # basic
+                    else:
                         prix_m2 = float(row.get("prix_m2") or 0)
                         surface = float(row.get("surface")) if row.get("surface") else None
                         if not prix_m2:
