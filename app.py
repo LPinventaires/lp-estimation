@@ -1498,6 +1498,36 @@ def estimation_export_docx(eid):
     parser = _HtmlToDocx(doc)
     parser.feed(body_html)
 
+    # ------ ANNEXE : PANEL COMPLET DE COMPARABLES ------
+    if comparables:
+        doc.add_paragraph()
+        h = doc.add_paragraph(f"Panel de biens comparables ({len(comparables)})")
+        _set_heading(h, size=15, color=LP_INK)
+
+        ptbl = doc.add_table(rows=1, cols=6)
+        ptbl.autofit = True
+        headers = ["Adresse", "Type", "Année", "Surface", "Prix total", "Prix / m²"]
+        for i, htxt in enumerate(headers):
+            cell = ptbl.rows[0].cells[i]
+            p = cell.paragraphs[0]
+            run = p.add_run(htxt)
+            run.font.name = "Georgia"; run.font.size = Pt(9); run.font.bold = True
+            run.font.color.rgb = LP_GOLD
+        for c in comparables:
+            row = ptbl.add_row().cells
+            def _fill(cell, txt, bold=False, color=LP_INK):
+                p = cell.paragraphs[0]
+                r = p.add_run(txt)
+                r.font.name = "Georgia"; r.font.size = Pt(9); r.font.bold = bold
+                r.font.color.rgb = color
+            _fill(row[0], c.get("adresse") or "—", bold=True)
+            _fill(row[1], c.get("type_bien") or "—")
+            _fill(row[2], str(c.get("annee") or "—"))
+            _fill(row[3], f"{int(c['surface'])} m²" if c.get("surface") else "—")
+            _fill(row[4], f"CHF {int(c['prix_total']):,}".replace(",", "'") if c.get("prix_total") else "—")
+            _fill(row[5], f"{int(c['prix_m2']):,} CHF".replace(",", "'") if c.get("prix_m2") else "—",
+                  bold=True, color=LP_GOLD)
+
     # ------ SIGNATURE ------
     doc.add_paragraph()
     sig_p = doc.add_paragraph()

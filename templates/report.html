@@ -171,5 +171,51 @@
 
   {# --- RAPPORT LP GÉNÉRÉ --- #}
   {{ report_html|safe }}
+
+  {# --- ANNEXE : PANEL COMPLET DE COMPARABLES --- #}
+  {% if comparables %}
+  <div class="section" style="margin-top:36px;page-break-before:always">
+    <h2 style="font-family:var(--serif);color:var(--ink);border-bottom:2px solid var(--accent);padding-bottom:8px;margin-bottom:8px">
+      Panel de biens comparables
+    </h2>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 18px">
+      {{ comparables|length }} bien{{ 's' if comparables|length > 1 else '' }} retenu{{ 's' if comparables|length > 1 else '' }} pour l'analyse hédoniste — classés par pertinence (récence, richesse d'information).
+    </p>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:var(--bg3);color:var(--ink);text-align:left">
+            <th style="padding:10px 12px;border-bottom:2px solid var(--accent);font-weight:600">Adresse</th>
+            <th style="padding:10px 12px;border-bottom:2px solid var(--accent);font-weight:600">Type</th>
+            <th style="padding:10px 12px;border-bottom:2px solid var(--accent);font-weight:600;text-align:center">Année</th>
+            <th style="padding:10px 12px;border-bottom:2px solid var(--accent);font-weight:600;text-align:right">Surface</th>
+            <th style="padding:10px 12px;border-bottom:2px solid var(--accent);font-weight:600;text-align:right">Prix total</th>
+            <th style="padding:10px 12px;border-bottom:2px solid var(--accent);font-weight:600;text-align:right">Prix/m²</th>
+            <th style="padding:10px 12px;border-bottom:2px solid var(--accent);font-weight:600">Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in comparables %}
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:10px 12px;color:var(--ink);font-weight:500">{{ c.adresse }}</td>
+            <td style="padding:10px 12px;color:var(--ink-soft)">{{ c.type_bien or '—' }}</td>
+            <td style="padding:10px 12px;text-align:center;color:var(--ink-soft)">{{ c.annee or '—' }}</td>
+            <td style="padding:10px 12px;text-align:right;color:var(--ink-soft)">{% if c.surface %}{{ c.surface|m2 }} m²{% else %}—{% endif %}</td>
+            <td style="padding:10px 12px;text-align:right;color:var(--ink);font-weight:500">{% if c.prix_total %}CHF {{ c.prix_total|chf }}{% else %}—{% endif %}</td>
+            <td style="padding:10px 12px;text-align:right;color:var(--accent2);font-weight:600">{{ c.prix_m2|chf }} CHF</td>
+            <td style="padding:10px 12px;color:var(--muted);font-size:12px">
+              {% if c.kind == "estimation" %}Estimation LP{% if c.date %} · {{ c.date }}{% endif %}
+              {% elif c.kind == "sold" %}Vendu
+              {% elif c.kind == "retenu" %}Retenu
+              {% elif c.kind == "forsale" %}À vendre
+              {% else %}{{ c.source or '—' }}{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
