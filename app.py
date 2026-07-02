@@ -972,6 +972,43 @@ CONSIGNES DE FORME
         return ""
 
 
+@app.route("/api/preview-comparables", methods=["POST"])
+@login_required
+def api_preview_comparables():
+    """Renvoie un aperçu léger des comparables pour le formulaire de saisie."""
+    data = request.get_json(silent=True) or {}
+    quartier = (data.get("quartier") or "").strip()
+    type_bien = (data.get("type_bien") or "").strip()
+    address = (data.get("address") or "").strip()
+    try:
+        surface = float(str(data.get("surface") or "").replace("'", "").replace(" ", "") or 0)
+    except ValueError:
+        surface = 0
+    if not quartier and not address:
+        return jsonify({"comparables": [], "stats": None, "proposed_pm2": None})
+    proposed_pm2, comps, stats = find_comparables(
+        quartier, address, surface, type_bien,
+        current_eid=None, user_id=session.get("user_id"),
+    )
+    # Version allégée pour le formulaire (max 6)
+    lite = [{
+        "adresse": c["adresse"],
+        "type_bien": c.get("type_bien"),
+        "annee": c.get("annee"),
+        "surface": c.get("surface"),
+        "prix_total": c.get("prix_total"),
+        "prix_m2": c.get("prix_m2"),
+        "kind": c.get("kind"),
+        "source": c.get("source"),
+    } for c in comps[:6]]
+    return jsonify({
+        "comparables": lite,
+        "total": len(comps),
+        "proposed_pm2": proposed_pm2,
+        "match_level": stats.get("match_level") if stats else None,
+    })
+
+
 @app.route("/estimation/new", methods=["GET", "POST"])
 @login_required
 def estimation_new():

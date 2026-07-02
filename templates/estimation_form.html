@@ -38,11 +38,34 @@
 
   {% include "_form_fields.html" %}
 
+  {# --- APERÇU DES COMPARABLES DÉTECTÉS (mis à jour en direct) --- #}
+  <div id="comp-preview" style="margin-top:24px;padding:18px 20px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;display:none">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+      <div style="font-family:var(--serif);font-size:16px;font-weight:600;color:var(--ink)">
+        Comparables identifiés
+        <span id="comp-count" style="color:var(--accent2);font-weight:600"></span>
+      </div>
+      <div id="comp-avg" style="color:var(--muted);font-size:13px"></div>
+    </div>
+    <div id="comp-list" style="display:grid;grid-template-columns:1fr;gap:8px"></div>
+    <div id="comp-note" style="margin-top:10px;color:var(--muted);font-size:12px;font-style:italic"></div>
+  </div>
+
   <div class="toolbar no-print" style="margin-top:22px;justify-content:space-between;display:flex;gap:14px;flex-wrap:wrap">
     <a class="btn secondary" href="{{ url_for('dashboard') }}">← Tableau de bord</a>
-    <button class="btn" type="submit">Générer le rapport →</button>
+    <button class="btn" type="submit" id="submit-btn">Générer le rapport →</button>
   </div>
 </form>
+
+{# --- OVERLAY DE GÉNÉRATION (30-40s d'attente Claude) --- #}
+<div id="gen-overlay" style="display:none;position:fixed;inset:0;background:rgba(42,37,32,.72);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--line-strong);border-radius:16px;padding:40px 48px;max-width:440px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <div style="width:56px;height:56px;border:4px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 18px;animation:spin 1s linear infinite"></div>
+    <div style="font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);margin-bottom:8px">Rédaction du rapport LP</div>
+    <div style="color:var(--muted);font-size:14px;line-height:1.5">Claude analyse les comparables et rédige les 9 sections du rapport dans la méthode hédoniste LP.<br><strong style="color:var(--accent2)">30 à 60 secondes environ.</strong></div>
+  </div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 {% block scripts %}
 <script>
@@ -168,6 +191,103 @@
     dz.style.background = 'var(--bg2)';
     if (e.dataTransfer.files[0]) uploadPhoto(e.dataTransfer.files[0]);
   });
+
+  // ---------- OVERLAY GÉNÉRATION AU SUBMIT ----------
+  const overlay = document.getElementById('gen-overlay');
+  const submitBtn = document.getElementById('submit-btn');
+  form.addEventListener('submit', () => {
+    overlay.style.display = 'flex';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Génération…';
+  });
+
+  // ---------- PREVIEW LIVE DES COMPARABLES ----------
+  const preview_box = document.getElementById('comp-preview');
+  const compCount = document.getElementById('comp-count');
+  const compAvg = document.getElementById('comp-avg');
+  const compList = document.getElementById('comp-list');
+  const compNote = document.getElementById('comp-note');
+
+  function fmtCHF(n) {
+    if (!n) return '—';
+    return "CHF " + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  }
+
+  const LEVEL_LABEL = {
+    strict: "Filtre strict : même quartier, surface ±20 %, même famille.",
+    surface_wide: "Filtre élargi : surface ±40 % — peu de biens strictement comparables.",
+    quartier_type: "Filtre élargi : même quartier et famille de bien.",
+    neighbors: "Quartiers voisins ajoutés — faute de comparables directs.",
+    neighbors_any_type: "Quartiers voisins + tous types résidentiels.",
+  };
+
+  async function refreshComparables() {
+    const address = form.querySelector('[name="address"]')?.value?.trim() || '';
+    const quartier = form.querySelector('[name="quartier"]')?.value || '';
+    const type_bien = form.querySelector('[name="type_bien"]')?.value || '';
+    const surface = form.querySelector('[name="surface"]')?.value || '';
+    if (!quartier && !address) {
+      preview_box.style.display = 'none';
+      return;
+    }
+    try {
+      const res = await fetch('{{ url_for("api_preview_comparables") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({address, quartier, type_bien, surface}),
+      });
+      const data = await res.json();
+      const comps = data.comparables || [];
+      preview_box.style.display = 'block';
+      compCount.textContent = ` — ${data.total || 0} bien${(data.total||0) > 1 ? 's' : ''}`;
+      compAvg.textContent = data.proposed_pm2 ? `Prix moyen : ${fmtCHF(data.proposed_pm2)} / m²` : '';
+      compNote.textContent = LEVEL_LABEL[data.match_level] || '';
+      compList.innerHTML = comps.map(c => {
+        const bits = [];
+        if (c.type_bien) bits.push(c.type_bien);
+        if (c.annee) bits.push(c.annee);
+        if (c.surface) bits.push(Math.round(c.surface) + ' m²');
+        const pill =
+          c.kind === 'estimation' ? '<span style="background:var(--accent-soft);color:var(--ink);padding:2px 8px;border-radius:12px;font-size:11px">LP</span>' :
+          c.kind === 'sold' ? '<span style="background:#d8e8d0;color:#3a5a2e;padding:2px 8px;border-radius:12px;font-size:11px">Vendu</span>' :
+          c.kind === 'retenu' ? '<span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px">Retenu</span>' :
+          c.kind === 'forsale' ? '<span style="background:#f0e2c8;color:var(--ink);padding:2px 8px;border-radius:12px;font-size:11px">À vendre</span>' :
+          '';
+        return `
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:8px;flex-wrap:wrap">
+            <div style="min-width:0;flex:1">
+              <div style="font-weight:600;color:var(--ink);font-size:14px">${c.adresse}</div>
+              <div style="color:var(--muted);font-size:12px;margin-top:2px">${bits.join(' · ')} ${pill}</div>
+            </div>
+            <div style="text-align:right;white-space:nowrap">
+              ${c.prix_total ? `<div style="color:var(--ink);font-weight:600;font-size:14px">${fmtCHF(c.prix_total)}</div>` : ''}
+              <div style="color:var(--accent2);font-weight:600;font-size:12.5px">${fmtCHF(c.prix_m2)} / m²</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      if (data.total > comps.length) {
+        compNote.textContent += ` (${comps.length} affichés sur ${data.total})`;
+      }
+    } catch (e) {
+      preview_box.style.display = 'none';
+    }
+  }
+
+  let previewTimer = null;
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(refreshComparables, 350);
+  }
+  ['address', 'quartier', 'type_bien', 'surface'].forEach(name => {
+    const el = form.querySelector(`[name="${name}"]`);
+    if (el) {
+      el.addEventListener('change', schedulePreview);
+      el.addEventListener('input', schedulePreview);
+    }
+  });
+  // Kick-off si les champs sont déjà pré-remplis (via analyse IA)
+  setTimeout(refreshComparables, 500);
 })();
 </script>
 {% endblock %}
