@@ -1109,52 +1109,60 @@ def m2(v):
 
 
 CSV_SOURCE_TAG = "CSV Belfin/Champel60"
+CSV_LP_SOURCE_TAG = "CSV LP consolidé"
+
+CSV_FILES = [
+    # (chemin_relatif, source_tag)
+    ("data/comparables.csv", CSV_SOURCE_TAG),
+    ("data/comparables-lp.csv", CSV_LP_SOURCE_TAG),
+]
 
 
-def load_comparables_csv(path=None):
-    """Charge (ou recharge) les comparables depuis data/comparables.csv.
+def load_comparables_csv():
+    """Charge (ou recharge) tous les CSV comparables listés dans CSV_FILES.
 
-    Idempotent : supprime les entrées précédentes taggées CSV_SOURCE_TAG puis réinjecte.
-    Ainsi, si on modifie le CSV et redéploie, la base reflète toujours le CSV.
+    Idempotent : supprime d'abord toutes les entrées taggées avec un de nos tags,
+    puis réinjecte. Ainsi, modifier les CSV et redéployer suffit à mettre à jour la base.
     """
     import csv as _csv
-    path = path or os.path.join(os.path.dirname(__file__), "data", "comparables.csv")
-    if not os.path.exists(path):
-        app.logger.info(f"CSV comparables absent ({path}), skip.")
-        return 0
+    base = os.path.dirname(__file__)
 
-    # Nettoyer d'abord les anciennes entrées taggées CSV
-    RefPrice.query.filter_by(source=CSV_SOURCE_TAG).delete()
+    # Purge des anciennes entrées CSV (peu importe le tag)
+    RefPrice.query.filter(RefPrice.source.in_([tag for _, tag in CSV_FILES])).delete(synchronize_session=False)
     db.session.commit()
 
-    inserted = 0
-    with open(path, encoding="utf-8") as f:
-        reader = _csv.DictReader(f)
-        for row in reader:
-            try:
-                prix_m2 = float(row.get("prix_m2") or 0)
-                surface = float(row.get("surface")) if row.get("surface") else None
-                if not prix_m2:
-                    continue
-                # kind = sold s'il y a une date de vente, sinon retenu par défaut
-                kind = "sold" if row.get("date_vente") else "sold"
-                r = RefPrice(
-                    quartier=(row.get("quartier") or "").strip(),
-                    adresse=(row.get("adresse") or "").strip(),
-                    prix_m2=prix_m2,
-                    annee=(row.get("annee") or "").strip(),
-                    source=CSV_SOURCE_TAG,
-                    kind=kind,
-                    surface=surface,
-                    type_bien=(row.get("type_bien") or "").strip() or None,
-                )
-                db.session.add(r)
-                inserted += 1
-            except Exception as e:
-                app.logger.warning(f"Ligne CSV ignorée : {row} — {e}")
-    db.session.commit()
-    app.logger.info(f"CSV comparables : {inserted} lignes chargées depuis {path}")
-    return inserted
+    total = 0
+    for rel_path, source_tag in CSV_FILES:
+        path = os.path.join(base, rel_path)
+        if not os.path.exists(path):
+            app.logger.info(f"CSV absent ({path}), skip.")
+            continue
+        inserted = 0
+        with open(path, encoding="utf-8") as f:
+            for row in _csv.DictReader(f):
+                try:
+                    prix_m2 = float(row.get("prix_m2") or 0)
+                    surface = float(row.get("surface")) if row.get("surface") else None
+                    if not prix_m2:
+                        continue
+                    r = RefPrice(
+                        quartier=(row.get("quartier") or "").strip(),
+                        adresse=(row.get("adresse") or "").strip(),
+                        prix_m2=prix_m2,
+                        annee=(row.get("annee") or "").strip(),
+                        source=source_tag,
+                        kind="sold",
+                        surface=surface,
+                        type_bien=(row.get("type_bien") or "").strip() or None,
+                    )
+                    db.session.add(r)
+                    inserted += 1
+                except Exception as e:
+                    app.logger.warning(f"Ligne CSV ignorée : {row} — {e}")
+        db.session.commit()
+        app.logger.info(f"CSV comparables : {inserted} lignes chargées depuis {rel_path}")
+        total += inserted
+    return total
 
 
 def seed():

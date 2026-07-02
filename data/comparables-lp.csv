@@ -1,0 +1,411 @@
+id,adresse,quartier,type_bien,surface,prix,prix_m2,annee,etat,date_vente
+100,"Chemin Marie-Dentiere 34, 36",Plainpalais,Appartement,276.9,4550000,16430,2025,,2025
+101,Route du Bout-du-Monde 11,Plainpalais,Appartement,387.9,6000000,15469,2025,,2025
+102,"Chemin Marie-Dentiere 34, 36",Plainpalais,Appartement,239.0,3320000,13894,2025,,2025
+103,Chemin Bram-Van-Velde 7,Plainpalais,Maison individuelle,228.0,3450000,15132,2025,,2025
+104,Chemin Bram-Van-Velde 3,Plainpalais,Maison individuelle,235.0,3550000,15106,2025,,2025
+105,Chemin Bram-Van-Velde 4,Plainpalais,Maison individuelle,220.0,3900000,17727,2024,,2024
+106,Chemin Bram-Van-Velde 8,Plainpalais,Maison individuelle,192.0,3900000,20312,2024,,2024
+107,"Chemin Edouard-Tavan 6, 8",Champel,Maison individuelle,2850.0,15300000,5368,2024,,2024
+108,Chemin Marie-Dentiere 12,Plainpalais,Maison individuelle,175.0,4765000,27229,2023,,2023
+109,Chemin Marie-Dentiere 6,Plainpalais,Maison individuelle,166.0,4700000,28313,2023,,2023
+110,"Chemin Marie-Dentiere 34, 36",Plainpalais,Appartement,101.3,1650000,16280,2022,,2022
+111,Chemin Marie-Dentiere 9,Plainpalais,Appartement,224.5,2900000,12919,2022,,2022
+112,Chemin Marie-Dentiere 8,Plainpalais,Maison individuelle,166.0,4080000,24578,2022,,2022
+113,Route du Bout-du-Monde 17,Plainpalais,Appartement,319.8,4300000,13446,2022,,2022
+114,Chemin Marie-Dentiere 9,Plainpalais,Appartement,299.7,3220000,10746,2021,,2021
+115,Route du Bout-du-Monde 11,Plainpalais,Appartement,190.3,2200000,11559,2021,,2021
+116,Route du Bout-du-Monde 11,Plainpalais,Appartement,271.2,2775000,10233,2021,,2021
+117,Route de Covéry 18,Meinier,Maison individuelle,283.0,4250000,15018,2025,,2025
+118,"Rue de Graman 87, 89",Puplinge,Maison individuelle,1124.0,7300000,6495,2023,,2023
+119,Route de Puplinge 34,Puplinge,Maison individuelle,539.0,3200000,5937,2022,,2022
+120,Chemin de la Forge 37,Jussy,Maison individuelle,380.0,3470000,9132,2022,,2022
+121,Chemin de Pré-Marquis 5a,Puplinge,Maison individuelle,475.0,5500000,11579,2022,,2022
+122,Route de Lullier 39,Jussy,Maison individuelle,572.0,4000000,6993,2022,,2022
+123,Route de Gy 48a,Meinier,Maison individuelle,270.0,4475000,16574,2021,,2021
+124,Route du Vallon 50,Chêne-Bougeries,Maison individuelle,1007.0,6800000,6753,2021,,2021
+125,Chemin du Nant-d'Argent 35,Cologny,Maison individuelle,1057.0,12250000,11589,2025,,2025
+126,Chemin de Bessinge 17,Vandoeuvres,Maison individuelle,1058.0,6800000,6427,2021,,2021
+127,Chemin Falletti 9,Chêne-Bougeries,Maison individuelle,1091.0,7000000,6416,2026,,2026
+128,Chemin de la Prévôté 20,Cologny,Maison individuelle,1091.0,8479999,7773,2023,,2023
+129,Chemin de Fossard 38,Chêne-Bougeries,Maison individuelle,1142.0,8300000,7268,2025,,2025
+130,Chemin du Rossignol 12,Vandoeuvres,Maison individuelle,1142.0,6700000,5867,2024,,2024
+131,Chemin de Fossard 47a,Chêne-Bougeries,Maison individuelle,1186.0,7200000,6071,2025,,2025
+132,Avenue des Arpillières 14,Chêne-Bougeries,Maison individuelle,1212.0,7500000,6188,2025,,2025
+133,Chemin du Séchard 12,Cologny,Maison individuelle,1270.0,11200000,8819,2026,,2026
+134,Chemin des Sarments 8,Collonge-Bellerive,Maison individuelle,1271.0,8750000,6884,2023,,2023
+135,Chemin de la Cocuaz 15,Vandoeuvres,Maison individuelle,1298.0,6800000,5239,2023,,2023
+136,Chemin de Lulasse 9,Vandoeuvres,Maison individuelle,1333.0,6750000,5064,2022,,2022
+137,Chemin Boissier 27c,Cologny,Maison individuelle,1367.0,9000000,6584,2025,,2025
+138,Chemin du Nant-d'Argent 20a,Cologny,Maison individuelle,1383.0,9500000,6869,2024,,2024
+139,Chemin de Ruth 89,Cologny,Maison individuelle,1390.0,10090000,7259,2021,,2021
+140,Chemin du Château-de-Bellerive 56,Collonge-Bellerive,Maison individuelle,1404.0,12340000,8789,2023,,2023
+141,Chemin de Bonnevaux 10,Cologny,Maison individuelle,1427.0,11200000,7849,2022,,2022
+142,Chemin de-la-Montagne 60,Chêne-Bougeries,Maison individuelle,1431.0,7356347,5141,2024,,2024
+143,Chemin de Coudrée 1,Cologny,Maison individuelle,1614.0,8500000,5266,2023,,2023
+144,Chemin du Pré-Langard 25bis,Cologny,Maison individuelle,1624.0,8500000,5234,2022,,2022
+145,Chemin de Ruth 115,Cologny,Maison individuelle,1636.0,8800000,5379,2021,,2021
+146,Avenue Georges-Werner 5,Chêne-Bougeries,Maison individuelle,1650.0,8700000,5273,2025,,2025
+147,Route de la-Capite 152,Vandoeuvres,Maison individuelle,1678.0,10785000,6427,2024,,2024
+148,Chemin Boissier 29b,Cologny,Maison individuelle,1714.0,12900000,7526,2025,,2025
+149,Chemin du Pré-Langard 33,Cologny,Maison individuelle,1736.0,12600000,7258,2024,,2024
+150,Chemin de l'Ecorcherie 37,Vandoeuvres,Maison individuelle,1742.0,10500000,6028,2023,,2023
+151,Route de Malagnou 170b,Malagnou,Maison individuelle,1766.0,9300000,5266,2025,,2025
+152,"Avenue Léonard-Sismondi 12, 14, Avenue Marc-Doret 16",Chêne-Bougeries,Maison individuelle,1782.0,9750000,5471,2024,,2024
+153,Route de Malagnou 168b,Malagnou,Maison individuelle,1791.0,10000000,5583,2023,,2023
+154,Chemin de la Rippaz 19,Vandoeuvres,Maison individuelle,1940.0,12150000,6263,2026,,2026
+155,Chemin du Joran 6,Cologny,Maison individuelle,1959.0,11350000,5794,2021,,2021
+156,"Route de la-Capite 49a, 49b",Cologny,Maison individuelle,1976.0,10090000,5106,2024,,2024
+157,Chemin du Nant-d'Argent 11,,Maison individuelle,2380.0,13150000,5525,,,
+158,Chemin Byron 19,,Maison individuelle,2113.0,16350000,7738,,,
+159,Chemin Boissier 29,,Maison individuelle,1267.0,14234100,11234,,,
+160,Chemin du Nant-d'Argent 18,,Maison individuelle,2111.0,13500000,6395,,,
+161,Chemin des Princes 14a,,Maison individuelle,2329.0,15500000,6655,,,
+162,Chemin de Ruth 43,,Maison individuelle,1460.0,16000000,10959,,,
+163,Chemin du Connétable 8,,Maison individuelle,1541.0,13000000,8436,,,
+164,Quai de Cologny 72,,Maison individuelle,1860.0,15000000,8065,,,
+165,Chemin du Nant-d'Aisy 9,Corsier,Maison individuelle,2276.0,12250000,5382,2024,,2024
+166,Chemin du Nant-d'Aisy 16,Corsier,Maison individuelle,1603.0,9750000,6082,2023,,2023
+167,Route d'Hermance 283,Anières,Maison individuelle,1500.0,8000000,5333,2023,,2023
+168,Chemin de Charvel 14,Collonge-Bellerive,Maison individuelle,1535.0,11100000,7231,2022,,2022
+169,Quai de Corsier 38,Corsier,Maison individuelle,1273.0,8350000,6559,2022,,2022
+170,Chemin des Clapotis 6,Anières,Maison individuelle,2148.4,11322000,5270,2021,,2021
+171,Chemin des Hutins 23a,Anières,Maison individuelle,1846.0,11200000,6067,2021,,2021
+172,Chemin de la Marguerite 5,Anières,Maison individuelle,1079.0,8390000,7776,2021,,2021
+173,Route d'Hermance 155,Collonge-Bellerive,Maison individuelle,1928.0,10511000,5452,2021,,2021
+174,Chemin du Nant-d'Aisy 15a,Anières,Maison individuelle,2323.0,13000000,5596,2021,,2021
+175,Route du Lac 19,Corsier,Maison individuelle,1349.0,8500000,6301,2020,,2020
+176,Chemin du Port-de-Bellerive 11,Collonge-Bellerive,Maison individuelle,2229.0,12750000,5720,2020,,2020
+177,Avenue des Arpillières 19,Chêne-Bougeries,Maison individuelle,1121.0,5870000,5236,2026,,2026
+178,Chemin du Coq-d'Inde 10e,Cologny,Maison individuelle,260.0,1950000,7500,2026,,2026
+179,Route de Pressy 7,Vandoeuvres,Maison individuelle,6384.0,33000000,5169,2026,,2026
+180,Route de Vandoeuvres 20e,Cologny,Maison individuelle,73.0,600000,8219,2025,,2025
+181,Route de Vandoeuvres 20,Cologny,Maison individuelle,262.0,2320000,8855,2025,,2025
+182,Route de Vandoeuvres 20b,Cologny,Maison individuelle,175.0,1880000,10743,2025,,2025
+183,Chemin des Buclines 10b,Chêne-Bougeries,Maison individuelle,250.0,2850000,11400,2025,,2025
+184,Route de la-Capite 138a,Vandoeuvres,Maison individuelle,1117.0,5700000,5103,2025,,2025
+185,Route de Vandoeuvres 20d,Cologny,Maison individuelle,176.0,2000000,11364,2025,,2025
+186,Chemin de la Sapinière 1,Vandoeuvres,Maison individuelle,2088.0,17500000,8381,2024,,2024
+187,Chemin des Falquets 59,Cologny,Maison individuelle,2423.0,17229712,7111,2024,,2024
+188,Chemin de Lulasse 29,Vandoeuvres,Maison individuelle,942.0,5850000,6210,2024,,2024
+189,Chemin de Lulasse 31,Vandoeuvres,Maison individuelle,936.0,5650000,6036,2022,,2022
+190,Chemin des Hauts-Crêts 126,Vandoeuvres,Maison individuelle,1941.0,13800000,7110,2024,,2024
+191,Chemin des Princes 33a,Choulex,Maison individuelle,412.0,4850000,11772,2025,,2025
+192,Chemin de l'Ecorcherie 31c,Vandoeuvres,Maison individuelle,585.0,4800000,8205,2025,,2025
+193,Chemin Morin 10a,Vandoeuvres,Maison individuelle,435.0,4800000,11034,2025,,2025
+194,Route de Chêne 123c,Chêne-Bougeries,Maison individuelle,293.0,2400000,8191,2023,,2023
+195,Chemin de Ruth 122d,Cologny,Maison individuelle,567.0,4130000,7284,2026,,2026
+196,Chemin du Mont-Blanc 24,Chêne-Bougeries,Maison individuelle,594.0,4000000,6734,2024,,2024
+197,Chemin du Mont-Blanc 26,Chêne-Bougeries,Maison individuelle,558.0,3800000,6810,2021,,2021
+198,Chemin de Ruth 122c,Cologny,Maison individuelle,522.0,3700000,7088,2021,,2021
+199,Chemin du Mont-Blanc 3a,Chêne-Bougeries,Maison individuelle,694.5,3600000,5184,2024,,2024
+200,Chemin de la Gradelle 25,Cologny,Maison individuelle,216.0,2825000,13079,2023,,2023
+201,Route de Vandoeuvres 20e,Cologny,Maison individuelle,292.0,2350000,8048,2023,,2023
+202,Chemin Morin 18,Vandoeuvres,Maison individuelle,493.0,3050000,6187,2024,,2024
+203,Chemin des Buclines 12b,Chêne-Bougeries,Maison individuelle,414.0,2975000,7186,2025,,2025
+204,Chemin David-Munier 20c,Cologny,Maison individuelle,488.0,2890000,5922,2025,,2025
+205,Chemin des Buclines 10a,Chêne-Bougeries,Maison individuelle,125.0,1160000,9280,2022,,2022
+206,Chemin de Grange-Falquet 51,Chêne-Bougeries,Maison individuelle,366.0,2690000,7350,2023,,2023
+207,Chemin de Couvaloux 12,Chêne-Bougeries,Maison individuelle,481.0,2550000,5301,2026,,2026
+208,Chemin de la Cocuaz 23c,Vandoeuvres,Maison individuelle,349.0,2420000,6934,2024,,2024
+209,Chemin du Petit-Pont 7,Chêne-Bougeries,Maison individuelle,366.0,2310000,6311,2024,,2024
+210,Chemin du Coq-d'Inde 13,Cologny,Maison individuelle,321.0,2005000,6246,2025,,2025
+211,Chemin du Villaret 9,Chêne-Bougeries,Maison individuelle,361.0,1950000,5402,2023,,2023
+212,Route Jean-Jacques-Rigaud 24ter,Chêne-Bougeries,Maison individuelle,330.0,1900000,5758,2023,,2023
+213,Chemin de la Gradelle 15,Cologny,Maison individuelle,248.0,3400000,13710,2021,,2021
+214,Chemin Saladin 7b,Chêne-Bougeries,Maison individuelle,282.0,1850000,6560,2021,,2021
+215,Chemin de Conches 17bis,Chêne-Bougeries,Maison individuelle,2632.0,14200000,5395,2025,,2025
+216,Avenue Jacques-Martin 17,Chêne-Bougeries,Maison individuelle,2445.0,14000000,5726,2024,,2024
+217,Clos-Belmont 9,Eaux-Vives,Maison individuelle,1771.0,9302500,5253,2023,,2023
+218,Chemin du Port-Noir 8,Eaux-Vives,Maison individuelle,1571.0,16400000,10439,2023,,2023
+219,Rue Agasse 52,Eaux-Vives,Maison individuelle,1586.0,8100000,5107,2023,,2023
+220,Chemin Naville 48,Chêne-Bougeries,Maison individuelle,2098.0,16400000,7817,2022,,2022
+221,Chemin de Grange-Bonnet 16,Chêne-Bougeries,Maison individuelle,2283.0,12100000,5300,2020,,2020
+222,Route de Lausanne 244,Pregny-Chambésy,Maison individuelle,4603.0,42253000,9179,2025,,2025
+223,Route de Suisse 304,Céligny,Maison individuelle,2405.0,15500000,6445,2023,,2023
+224,Chemin du Port 32,Céligny,Maison individuelle,3354.0,24000000,7156,2022,,2022
+225,Route de Lausanne 358,Genthod,Maison individuelle,2060.0,16600000,8058,2021,,2021
+226,Chemin du Pré-d'Orsat 49,Collonge-Bellerive,Maison individuelle,1281.0,6600000,5152,2026,,2026
+227,Chemin de la-Californie 29,Collonge-Bellerive,Appartement,462.9,5300000,11449,2024,,2024
+228,Chemin du Clos-Alpestre 10,Collonge-Bellerive,Maison individuelle,912.0,5190000,5691,2024,,2024
+229,Chemin de Charvel 9b,Collonge-Bellerive,Maison individuelle,716.0,4600000,6425,2026,,2026
+230,Chemin de Charvel 9a,Collonge-Bellerive,Maison individuelle,480.0,4600000,9583,2025,,2025
+231,"Route d'Hermance 27, 27a",Collonge-Bellerive,Appartement,343.9,4300000,12505,2024,,2024
+232,Chemin des Gotettes 66b,Collonge-Bellerive,Maison individuelle,692.0,3850000,5564,2025,,2025
+233,Chemin de Mancy 14,Collonge-Bellerive,Maison individuelle,663.0,3850000,5807,2025,,2025
+234,Chemin des Tattes 18d,Collonge-Bellerive,Maison individuelle,434.0,3350000,7719,2025,,2025
+235,Route de Thonon 137,Collonge-Bellerive,Appartement,186.0,3250000,17470,2024,,2024
+236,Chemin de Mancy 3i,Collonge-Bellerive,Maison individuelle,524.0,3100000,5916,2022,,2022
+237,Chemin de la-Californie 38,Collonge-Bellerive,Maison individuelle,273.0,3050000,11172,2025,,2025
+238,Route d'Hermance 29b,Collonge-Bellerive,Maison individuelle,295.0,2700000,9153,2024,,2024
+239,Chemin de la-Californie 29,Collonge-Bellerive,Appartement,293.1,2620000,8940,2023,,2023
+240,Chemin de la-Californie 29,Collonge-Bellerive,Appartement,293.1,2560000,8735,2023,,2023
+241,Route de Thonon 69,Collonge-Bellerive,Appartement,200.8,2525000,12577,2025,,2025
+242,Route d'Hermance 29,Collonge-Bellerive,Maison individuelle,327.0,2500000,7645,2024,,2024
+243,Chemin de la Vigneraie 14,Collonge-Bellerive,Maison individuelle,142.0,2450000,17254,2025,,2025
+244,Chemin de la-Californie 29,Collonge-Bellerive,Appartement,293.1,2430000,8291,2023,,2023
+245,Route de Thonon 137,Collonge-Bellerive,Appartement,185.1,2400000,12968,2022,,2022
+246,Chemin de Charvel 4f,Collonge-Bellerive,Maison individuelle,381.0,2300000,6037,2024,,2024
+247,Chemin de la Vigneraie 16,Collonge-Bellerive,Maison individuelle,179.0,2250000,12570,2024,,2024
+248,Chemin de la Plantée-du-Chêne 13,Collonge-Bellerive,Maison individuelle,350.1,2220000,6340,2025,,2025
+249,"Route d'Hermance 18, 18a",Collonge-Bellerive,Appartement,230.6,2200000,9539,2025,,2025
+250,Chemin de la Gabiule 74,Collonge-Bellerive,Maison individuelle,367.0,2150000,5858,2025,,2025
+251,Chemin Albert-Dufour 12,Collonge-Bellerive,Appartement,139.5,2150000,15409,2023,,2023
+252,Chemin de la-Californie 29,Collonge-Bellerive,Appartement,221.9,2140000,9646,2023,,2023
+253,"Route de Thonon 134, 136, 136a",Collonge-Bellerive,Appartement,173.0,2050000,11849,2023,,2023
+254,Chemin de la-Californie 29,Collonge-Bellerive,Appartement,221.9,2040000,9195,2023,,2023
+255,Chemin du Pré-de-la-Croix 5,Collonge-Bellerive,Appartement,148.6,1860000,12517,2024,,2024
+256,"Route de Thonon 134, 136, 136a",Collonge-Bellerive,Appartement,141.0,1775000,12591,2024,,2024
+257,Chemin du Pré-de-la-Croix 13,Collonge-Bellerive,Appartement,138.2,1760000,12738,2025,,2025
+258,"Route d'Hermance 27, 27a",Collonge-Bellerive,Appartement,99.0,1750000,17680,2025,,2025
+259,Chemin Albert-Dufour 12,Collonge-Bellerive,Appartement,138.6,1525000,11002,2022,,2022
+260,"Chemin du Pré-d'Orsat 1, 3, 5, 7, 9, 11, 1a",Collonge-Bellerive,Appartement,110.4,1050000,9507,2024,,2024
+261,Chemin de la Praly 9,Collonge-Bellerive,Maison individuelle,2290.0,17000000,7424,2023,,2023
+262,Chemin Byron 7,Cologny,Maison individuelle,1204.0,18000000,14950,2021,,2021
+263,Chemin du Nant-d'Argent 55,Cologny,Maison individuelle,3146.0,18030000,5731,2022,,2022
+264,Route de Thonon 7a,Cologny,Maison individuelle,1266.0,19200000,15166,2021,,2021
+265,Chemin du Pré-Langard 4,Cologny,Maison individuelle,3663.0,19750000,5392,2022,,2022
+266,Chemin de Ruth 80,Cologny,Maison individuelle,2537.0,20000000,7883,2024,,2024
+267,Chemin de la Perrière 9,Cologny,Maison individuelle,3213.0,20000000,6225,2021,,2021
+268,"Chemin des Ecureuils-Doret 3, 11",Collonge-Bellerive,Maison individuelle,3874.0,20100000,5188,2022,,2022
+269,Chemin Boissier 9a,Cologny,Maison individuelle,2436.0,20500000,8415,2022,,2022
+270,Chemin Boissier 9a,Cologny,Maison individuelle,2436.0,21820000,8957,2025,,2025
+271,"Chemin des Ecureuils-Doret 3, 11",Collonge-Bellerive,Maison individuelle,3874.0,23300000,6014,2024,,2024
+272,Chemin du Nant-d'Argent 51bis,Cologny,Maison individuelle,2028.0,24000000,11834,2025,,2025
+273,Chemin des Pêcheurs 13,Cologny,Maison individuelle,3011.0,24350000,8087,2022,,2022
+274,Chemin de la Gabiule 31,Collonge-Bellerive,Maison individuelle,2648.0,24500000,9252,2025,,2025
+275,Chemin de Ruth 31,Cologny,Maison individuelle,3280.0,25000000,7622,2025,,2025
+276,Chemin du Milieu 17,Collonge-Bellerive,Maison individuelle,4015.0,26600000,6625,2023,,2023
+277,Chemin Boissier 23,Cologny,Maison individuelle,2714.0,26693280,9835,2025,,2025
+278,Chemin des Marèches 15,Collonge-Bellerive,Maison individuelle,3849.0,30423000,7904,2022,,2022
+279,Chemin de Ruth 75,Cologny,Maison individuelle,5118.0,38361790,7495,2023,,2023
+280,Route de la-Capite 55,Cologny,Maison individuelle,4829.0,45000000,9319,2023,,2023
+281,Chemin de Ruth 53,Cologny,Maison individuelle,5430.0,50000000,9208,2023,,2023
+282,Route de la-Capite 41,Cologny,Maison individuelle,4418.0,60500000,13694,2021,,2021
+283,Rue Giovanni-Gambini 3,Eaux-Vives,Appartement,195.8,2595000,13253,2026,,2026
+284,"Route de Florissant 118, 120, 122",Florissant,Appartement,231.0,3020000,13072,2026,,2026
+285,Rue Robert-de-Traz 14,Eaux-Vives,Appartement,224.7,2160000,9615,2026,,2026
+286,Avenue Eugène-Pittard 5,Eaux-Vives,Appartement,145.6,1900000,13052,2026,,2026
+287,"Avenue Eugène-Pittard 13, 15",Eaux-Vives,Appartement,277.1,2750000,9926,2026,,2026
+288,Avenue Eugène-Pittard 5,Eaux-Vives,Appartement,130.5,1750000,13409,2026,,2026
+289,"Rue Giovanni-Gambini 1, 3",Eaux-Vives,Appartement,254.6,3650000,14336,2026,,2026
+290,"Route de Florissant 89a, 89b",Florissant,Appartement,85.1,1900000,22316,2026,,2026
+291,Chemin Rieu 8,Eaux-Vives,Maison individuelle,267.8,3440000,12845,2026,,2026
+292,"Route de Florissant 89a, 89b",Florissant,Appartement,192.6,2975000,15449,2026,,2026
+293,Chemin Doctoresse-Champendal 4,Eaux-Vives,Appartement,355.3,4250000,11963,2026,,2026
+294,Avenue Eugène-Pittard 11,Eaux-Vives,Appartement,172.7,2625000,15202,2026,,2026
+295,Avenue Eugène-Pittard 5,Eaux-Vives,Appartement,110.4,1875000,16978,2026,,2026
+296,Rue Robert-de-Traz 6,Eaux-Vives,Appartement,319.7,3575000,11182,2026,,2026
+297,Route de Florissant 112,Florissant,Appartement,233.2,2725000,11685,2026,,2026
+298,"Avenue Eugène-Pittard 13, 15",Eaux-Vives,Appartement,322.0,3500000,10870,2026,,2026
+299,Chemin des Pins 6,Eaux-Vives,Appartement,234.5,1750585,7465,2026,,2026
+300,Route de Florissant 85,Florissant,Appartement,124.7,2600000,20843,2026,,2026
+301,Route de Florissant 62,Florissant,Appartement,99.4,1490000,14991,2026,,2026
+302,Rue Pedro-Meylan 4,Eaux-Vives,Appartement,66.7,730000,10948,2026,,2026
+303,"Route de Florissant 89a, 89b",Florissant,Appartement,87.3,2170000,24863,2026,,2026
+304,Route de Florissant 95,Florissant,Appartement,183.2,2000000,10919,2026,,2026
+305,Route de Florissant 62,Florissant,Appartement,99.4,1585000,15947,2026,,2026
+306,"Avenue Eugène-Pittard 13, 15",Eaux-Vives,Appartement,232.1,3400000,14648,2026,,2026
+307,Rue Robert-de-Traz 8,Eaux-Vives,Appartement,230.8,2400000,10396,2026,,2026
+308,Rue Robert-de-Traz 8,Eaux-Vives,Appartement,230.8,2170000,9400,2026,,2026
+309,Route de Florissant 86c,Florissant,Appartement,47.1,440000,9346,2026,,2026
+310,"Route de Florissant 89a, 89b",Florissant,Appartement,113.1,2120000,18740,2026,,2026
+311,Chemin Rieu 4,Eaux-Vives,Appartement,176.9,2100000,11871,2026,,2026
+312,Route de Florissant 104,Florissant,Maison individuelle,393.0,4200000,10687,2025,,2025
+313,Rue Robert-de-Traz 8,Eaux-Vives,Appartement,344.2,4000000,11619,2025,,2025
+314,Rue Robert-de-Traz 4,Eaux-Vives,Appartement,304.3,4350000,14295,2025,,2025
+315,Rue le-Corbusier 13,Eaux-Vives,Appartement,194.9,2075000,10648,2025,,2025
+316,"Rue Robert-de-Traz 5, 7",Eaux-Vives,Appartement,144.6,1700000,11757,2025,,2025
+317,Chemin des Pins 6,Eaux-Vives,Appartement,234.5,1335000,5693,2025,,2025
+318,"Route de Florissant 114, 116",Florissant,Appartement,217.3,1800000,8283,2025,,2025
+319,Avenue Eugène-Pittard 5,Eaux-Vives,Appartement,356.4,3150000,8838,2025,,2025
+320,Route de Florissant 86c,Florissant,Appartement,58.0,680000,11732,2025,,2025
+321,Route de Florissant 96,Florissant,Maison individuelle,774.0,8500000,10982,2025,,2025
+322,Route de Florissant 62,Florissant,Appartement,162.6,2500000,15371,2025,,2025
+323,"Route de Florissant 114, 116",Florissant,Appartement,272.8,2200600,8066,2025,,2025
+324,Rue Pedro-Meylan 2,Eaux-Vives,Appartement,327.0,3030000,9266,2025,,2025
+325,"Route de Florissant 89a, 89b",Florissant,Appartement,250.8,3600000,14352,2025,,2025
+326,Avenue Eugène-Pittard 7,Eaux-Vives,Appartement,205.8,2450000,11904,2025,,2025
+327,Route de Florissant 110,Florissant,Maison individuelle,1284.0,8600000,6698,2025,,2025
+328,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,127.4,1580000,12400,2025,,2025
+329,Rue le-Corbusier 38,Eaux-Vives,Appartement,98.2,1500000,15280,2025,,2025
+330,"Avenue Eugène-Pittard 13, 15",Eaux-Vives,Appartement,232.1,2500000,10770,2025,,2025
+331,"Route de Florissant 57, 59, Rue Robert-de-Traz 1, 3",Florissant,Appartement,211.2,1700000,8050,2025,,2025
+332,"Route de Florissant 89a, 89b",Florissant,Appartement,93.4,1730000,18522,2025,,2025
+333,Route de Florissant 72,Florissant,Appartement,150.6,1770000,11753,2025,,2025
+334,Route de Florissant 86b,Florissant,Appartement,202.9,2650000,13058,2025,,2025
+335,Avenue Eugène-Pittard 11,Eaux-Vives,Appartement,164.7,2520000,15305,2025,,2025
+336,Avenue Eugène-Pittard 11,Eaux-Vives,Appartement,116.5,1780000,15284,2025,,2025
+337,Route de Florissant 72,Florissant,Appartement,125.5,1600000,12749,2025,,2025
+338,Route de Florissant 72,Florissant,Appartement,115.5,1240000,10740,2025,,2025
+339,Route de Florissant 72,Florissant,Appartement,190.8,2540000,13315,2025,,2025
+340,Route de Florissant 62,Florissant,Appartement,103.9,1550000,14917,2025,,2025
+341,Route de Florissant 62,Florissant,Appartement,99.4,1400000,14086,2025,,2025
+342,Route de Florissant 62,Florissant,Appartement,117.5,1640000,13962,2025,,2025
+343,"Chemin des Pins 3, 5, 7",Eaux-Vives,Appartement,212.8,2500000,11749,2025,,2025
+344,Rue Pedro-Meylan 6,Eaux-Vives,Appartement,49.5,520000,10505,2025,,2025
+345,Rue Pedro-Meylan 2,Eaux-Vives,Appartement,311.1,2400000,7715,2025,,2025
+346,Rue Robert-de-Traz 15,Eaux-Vives,Appartement,77.0,1300000,16888,2025,,2025
+347,Rue Robert-de-Traz 14,Eaux-Vives,Appartement,217.5,1650000,7587,2025,,2025
+348,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,33.6,617000,18352,2025,,2025
+349,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,60.2,950000,15770,2025,,2025
+350,Rue Robert-de-Traz 16,Eaux-Vives,Appartement,697.5,4900000,7026,2025,,2025
+351,"Chemin Rieu 15, 15a",Eaux-Vives,Appartement,290.9,4100000,14094,2025,,2025
+352,Route de Florissant 86c,Florissant,Appartement,58.0,760000,13112,2025,,2025
+353,Rue le-Corbusier 12,Eaux-Vives,Appartement,106.0,1500000,14147,2025,,2025
+354,Rue Pedro-Meylan 6,Eaux-Vives,Appartement,202.9,2380000,11728,2025,,2025
+355,Route de Florissant 95,Florissant,Appartement,188.9,1960000,10376,2025,,2025
+356,"Route de Florissant 89a, 89b",Florissant,Appartement,33.3,597500,17943,2025,,2025
+357,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,162.3,2180000,13430,2025,,2025
+358,Avenue Eugène-Pittard 5,Eaux-Vives,Appartement,145.6,1800000,12365,2025,,2025
+359,Rue Pedro-Meylan 6,Eaux-Vives,Appartement,218.1,1860000,8529,2025,,2025
+360,Rue Robert-de-Traz 2,Eaux-Vives,Appartement,253.3,2960000,11684,2025,,2025
+361,Chemin de la Florence 15,Eaux-Vives,Appartement,140.3,1800000,12831,2024,,2024
+362,"Rue Robert-de-Traz 5, 7",Eaux-Vives,Appartement,54.5,600000,11015,2024,,2024
+363,Avenue Eugène-Pittard 5,Eaux-Vives,Appartement,140.6,1870000,13304,2024,,2024
+364,"Avenue Krieg 19, 21",Malagnou,Appartement,231.4,3100000,13397,2024,,2024
+365,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,136.7,1600000,11707,2024,,2024
+366,Rue le-Corbusier 14,Eaux-Vives,Appartement,77.7,1359000,17484,2024,,2024
+367,Chemin du Velours 24,Eaux-Vives,Appartement,121.7,1950000,16026,2024,,2024
+368,"Avenue Krieg 19, 21",Malagnou,Appartement,226.2,4116000,18193,2024,,2024
+369,"Route de Florissant 89a, 89b",Florissant,Appartement,213.8,4271800,19979,2024,,2024
+370,"Route de Florissant 118, 120, 122",Florissant,Appartement,223.9,2550000,11388,2024,,2024
+371,Chemin des Pins 6,Eaux-Vives,Appartement,234.5,1636800,6980,2024,,2024
+372,"Rue Pedro-Meylan 8, 10",Eaux-Vives,Appartement,51.3,825000,16094,2024,,2024
+373,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,153.7,2250000,14638,2024,,2024
+374,Chemin de la Florence 10,Eaux-Vives,Appartement,151.3,1800000,11898,2024,,2024
+375,"Route de Florissant 57, 59, Rue Robert-de-Traz 1, 3",Florissant,Appartement,90.3,870000,9639,2024,,2024
+376,"Route de Florissant 78, 80, 82",Florissant,Appartement,273.6,1600000,5848,2024,,2024
+377,"Chemin des Pins 3, 5, 7",Eaux-Vives,Appartement,129.5,1950000,15056,2024,,2024
+378,"Route de Florissant 89a, 89b",Florissant,Appartement,31.2,870000,27858,2024,,2024
+379,Avenue Eugène-Pittard 5,Eaux-Vives,Appartement,512.0,5800000,11327,2024,,2024
+380,"Rue Robert-de-Traz 5, 7",Eaux-Vives,Appartement,172.9,1915000,11075,2024,,2024
+381,Route de Florissant 86c,Florissant,Appartement,108.7,825000,7592,2024,,2024
+382,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,33.8,517600,15327,2024,,2024
+383,Rue Robert-de-Traz 8,Eaux-Vives,Appartement,178.2,1627000,9130,2024,,2024
+384,"Chemin Rieu 15, 15a",Eaux-Vives,Appartement,215.0,2430000,11302,2024,,2024
+385,Rue le-Corbusier 12,Eaux-Vives,Appartement,74.0,890000,12021,2024,,2024
+386,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,183.0,2760000,15079,2023,,2023
+387,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,169.9,1118800,6586,2023,,2023
+388,Chemin de la Florence 11,Eaux-Vives,Appartement,241.9,2770000,11450,2023,,2023
+389,Chemin de la Florence 11,Eaux-Vives,Appartement,263.3,2900000,11012,2023,,2023
+390,Rue Robert-de-Traz 16,Eaux-Vives,Appartement,697.5,4460000,6395,2023,,2023
+391,"Chemin du Velours 26, 28",Eaux-Vives,Appartement,112.0,1300000,11612,2023,,2023
+392,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,138.1,1660000,12019,2023,,2023
+393,Avenue Eugène-Pittard 38,Plainpalais,Appartement,199.0,2520000,12662,2023,,2023
+394,Route de Florissant 85,Florissant,Appartement,244.9,4300000,17561,2023,,2023
+395,Rue le-Corbusier 21a,Eaux-Vives,Appartement,293.2,3600000,12277,2023,,2023
+396,Chemin Doctoresse-Champendal 6,Eaux-Vives,Appartement,146.6,2200000,15006,2023,,2023
+397,Chemin Doctoresse-Champendal 6,Eaux-Vives,Appartement,130.1,1890000,14530,2023,,2023
+398,"Route de Florissant 118, 120, 122",Florissant,Appartement,278.1,3275000,11778,2023,,2023
+399,Rue Pedro-Meylan 6,Eaux-Vives,Appartement,202.9,2000000,9856,2023,,2023
+400,Route de Florissant 86c,Florissant,Appartement,47.1,545000,11576,2023,,2023
+401,"Rue Pedro-Meylan 8, 10",Eaux-Vives,Appartement,61.7,490000,7946,2023,,2023
+402,Route de Florissant 62,Florissant,Appartement,180.7,2415575,13366,2023,,2023
+403,"Rue Pedro-Meylan 8, 10",Eaux-Vives,Appartement,451.0,7300000,16188,2023,,2023
+404,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,63.2,850000,13456,2023,,2023
+405,Rue Robert-de-Traz 14,Eaux-Vives,Appartement,333.5,2620000,7856,2023,,2023
+406,"Route de Florissant 89a, 89b",Florissant,Appartement,185.3,3300000,17807,2023,,2023
+407,"Route de Florissant 81, Rue le-Corbusier 29, 31",Florissant,Appartement,202.8,1900000,9370,2023,,2023
+408,"Route de Florissant 89a, 89b",Florissant,Appartement,52.8,1100000,20818,2023,,2023
+409,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,69.1,454700,6583,2023,,2023
+410,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,138.1,1450000,10498,2023,,2023
+411,Route de Florissant 112,Florissant,Appartement,204.1,2150000,10537,2023,,2023
+412,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,66.8,426200,6377,2023,,2023
+413,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,146.0,894000,6123,2023,,2023
+414,"Route de Florissant 89a, 89b",Florissant,Appartement,34.3,670000,19545,2023,,2023
+415,Route de Florissant 86c,Florissant,Appartement,54.3,580000,10676,2023,,2023
+416,Avenue Krieg 7,Malagnou,Appartement,159.8,1920000,12017,2023,,2023
+417,"Route de Florissant 89a, 89b",Florissant,Appartement,59.2,1150000,19436,2023,,2023
+418,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,146.0,924900,6334,2022,,2022
+419,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,66.8,418400,6261,2022,,2022
+420,Rue Robert-de-Traz 10,Eaux-Vives,Appartement,361.7,3045000,8418,2022,,2022
+421,"Route de Florissant 81, Rue le-Corbusier 29, 31",Florissant,Appartement,1115.2,11750000,10536,2022,,2022
+422,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,140.4,895400,6377,2022,,2022
+423,Rue le-Corbusier 13,Eaux-Vives,Appartement,194.9,2580000,13239,2022,,2022
+424,"Avenue Eugène-Pittard 13, 15",Eaux-Vives,Appartement,232.1,2475000,10663,2022,,2022
+425,Rue le-Corbusier 13a,Eaux-Vives,Appartement,131.0,1830000,13965,2022,,2022
+426,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,61.7,810000,13130,2022,,2022
+427,Route de Florissant 112,Florissant,Appartement,288.9,2840000,9832,2022,,2022
+428,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,41.1,925000,22495,2022,,2022
+429,Rue le-Corbusier 14,Eaux-Vives,Appartement,36.6,600000,16376,2022,,2022
+430,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,157.5,2550000,16189,2022,,2022
+431,Avenue Eugène-Pittard 7,Eaux-Vives,Appartement,140.6,1700000,12094,2022,,2022
+432,"Route de Florissant 89a, 89b",Florissant,Appartement,127.3,2285000,17950,2022,,2022
+433,Rue Pedro-Meylan 6,Eaux-Vives,Appartement,119.1,1550000,13016,2022,,2022
+434,Avenue Eugène-Pittard 38,Plainpalais,Appartement,269.6,2700000,10013,2022,,2022
+435,Rue Pedro-Meylan 6,Eaux-Vives,Appartement,202.9,2085000,10274,2022,,2022
+436,Rue le-Corbusier 12,Eaux-Vives,Appartement,75.3,840000,11161,2022,,2022
+437,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,146.0,878500,6017,2022,,2022
+438,"Route de Florissant 118, 120, 122",Florissant,Appartement,158.8,1860000,11717,2022,,2022
+439,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,41.1,535000,13011,2022,,2022
+440,"Route de Florissant 89a, 89b",Florissant,Appartement,31.2,730000,23375,2022,,2022
+441,Chemin du Velours 20a,Eaux-Vives,Appartement,154.1,2400000,15573,2022,,2022
+442,Rue Robert-de-Traz 4,Eaux-Vives,Appartement,100.2,1300000,12981,2022,,2022
+443,Route de Florissant 86c,Florissant,Appartement,43.5,750000,17241,2022,,2022
+444,"Route de Florissant 118, 120, 122",Florissant,Appartement,90.6,730000,8055,2022,,2022
+445,"Route de Florissant 114, 116",Florissant,Appartement,291.3,2600000,8925,2022,,2022
+446,Avenue Eugène-Pittard 5,Eaux-Vives,Appartement,145.6,1500000,10304,2022,,2022
+447,"Avenue Krieg 15, 9, 11, 13",Malagnou,Maison individuelle,4774.0,28100000,5886,2022,,2022
+448,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,169.4,2280000,13456,2022,,2022
+449,"Route de Florissant 57, 59, Rue Robert-de-Traz 1, 3",Florissant,Appartement,226.7,2115000,9330,2022,,2022
+450,Rue le-Corbusier 12,Eaux-Vives,Appartement,79.8,875000,10959,2022,,2022
+451,"Chemin Rieu 16, 18, 20, 22",Eaux-Vives,Appartement,52.9,665000,12564,2022,,2022
+452,"Route de Florissant 57, 59, Rue Robert-de-Traz 1, 3",Florissant,Appartement,493.2,4525000,9175,2022,,2022
+453,Rue Robert-de-Traz 14,Eaux-Vives,Appartement,130.4,1300000,9970,2022,,2022
+454,"Route de Florissant 89a, 89b",Florissant,Appartement,127.7,2150000,16843,2022,,2022
+455,"Route de Florissant 89a, 89b",Florissant,Appartement,168.0,3900000,23218,2022,,2022
+456,Route de Florissant 86c,Florissant,Appartement,58.0,600000,10352,2022,,2022
+457,"Chemin Rieu 15, 15a",Eaux-Vives,Appartement,316.2,4150000,13125,2022,,2022
+458,Rue Robert-de-Traz 4,Eaux-Vives,Appartement,258.1,2650000,10268,2022,,2022
+459,"Route de Florissant 81, Rue le-Corbusier 29, 31",Florissant,Appartement,280.8,2000000,7124,2022,,2022
+460,Chemin Rieu 4,Eaux-Vives,Appartement,353.8,3360000,9497,2022,,2022
+461,Chemin des Pins 6,Eaux-Vives,Appartement,234.5,1280000,5458,2021,,2021
+462,"Rue Pedro-Meylan 6, 8, 10",Eaux-Vives,Appartement,178.6,1570000,8793,2021,,2021
+463,Chemin Doctoresse-Champendal 8,Eaux-Vives,Appartement,142.3,1900000,13348,2021,,2021
+464,Rue Robert-de-Traz 6,Eaux-Vives,Appartement,246.5,2800000,11358,2021,,2021
+465,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,66.8,392200,5869,2021,,2021
+466,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,164.3,977100,5948,2021,,2021
+467,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,236.7,1539800,6505,2021,,2021
+468,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,164.3,1037700,6317,2021,,2021
+469,Avenue Eugène-Pittard 5,Eaux-Vives,Appartement,140.6,1460000,10387,2021,,2021
+470,Chemin du Velours 24,Eaux-Vives,Appartement,74.2,1250000,16855,2021,,2021
+471,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,160.9,1116000,6936,2021,,2021
+472,Chemin Doctoresse-Champendal 18a,Eaux-Vives,Appartement,164.3,1019800,6208,2021,,2021
+473,"Avenue Krieg 19, 21",Malagnou,Appartement,123.4,1830000,14830,2021,,2021
+474,Rue Alice-Rivaz 4,Eaux-Vives,Appartement,170.0,2300000,13529,2021,,2021
+475,Rue Pedro-Meylan 6,Eaux-Vives,Appartement,114.2,1300000,11387,2021,,2021
+476,"Route de Florissant 89a, 89b",Florissant,Appartement,83.9,1350000,16098,2021,,2021
+477,"Route de Florissant 78, 80, 82",Florissant,Appartement,141.3,1550000,10971,2021,,2021
+478,Rue Pedro-Meylan 2,Eaux-Vives,Appartement,478.7,4450000,9296,2021,,2021
+479,"Route de Florissant 89a, 89b",Florissant,Appartement,213.8,4000000,18708,2021,,2021
+480,Rue Alice-Rivaz 4,Eaux-Vives,Appartement,100.5,1350000,13438,2021,,2021
+481,Rue Pedro-Meylan 6,Eaux-Vives,Appartement,133.8,1500000,11212,2021,,2021
+482,Rue le-Corbusier 14,Eaux-Vives,Appartement,120.9,1600000,13231,2021,,2021
+483,Chemin du Velours 20a,Eaux-Vives,Appartement,154.9,2350000,15166,2021,,2021
+484,Rue le-Corbusier 14,Eaux-Vives,Appartement,87.3,800000,9163,2021,,2021
+485,Rue Pedro-Meylan 4,Eaux-Vives,Appartement,274.7,2390000,8699,2021,,2021
+486,"Rue de Saint-Jean 19, 19a, 19b, 19c, 19d",Genève-Petit-Saconnex,Appartement,119.0,2870000,24108,2023,,2023
+487,"Rue du Pont-Neuf 6, 6bis",Carouge,Appartement,162.8,3250000,19958,2022,,2022
+488,"Rue des Falaises 2, Rue des Pêcheries 3, Sentier des Saules 9",Plainpalais,Appartement,144.9,2340000,16147,2025,,2025
+489,Rue Jacques-Dalphin 39,Carouge,Appartement,194.2,3000000,15449,2024,,2024
+490,"Rue des Pêcheries 7, 9",Plainpalais,Appartement,263.2,4000000,15196,2021,,2021
+491,"Rue des Falaises 2, Rue des Pêcheries 3, Sentier des Saules 9",Plainpalais,Appartement,144.9,2180000,15043,2023,,2023
+492,"Rue des Pêcheries 7, 9",Plainpalais,Appartement,242.4,3600000,14849,2022,,2022
+493,"Rue des Falaises 2, Rue des Pêcheries 3, Sentier des Saules 9",Plainpalais,Appartement,165.6,2450000,14792,2022,,2022
+494,Rue des Délices 27,Genève-Cité,Appartement,258.0,3600000,13952,2025,,2025
+495,"Rue des Caroubiers 8, 10, 12",Carouge,Appartement,168.7,2350000,13928,2022,,2022
+496,"Rue des Caroubiers 8, 10, 12",Carouge,Appartement,166.4,2300000,13823,2025,,2025
+497,"Passage de l'Intendant 5, 7",Carouge,Appartement,175.2,2400000,13698,2022,,2022
+498,Avenue de la Praille 38,Carouge,Appartement,153.7,2100000,13667,2024,,2024
+499,Rue Henri-Frédéric-Amiel 9,Champel,Appartement,168.4,2275000,13506,2022,,2022
+500,"Rue des Pêcheries 2, Rue du Quartier-Neuf 1",Plainpalais,Appartement,204.3,2740000,13412,2021,,2021
+501,Rue Ancienne 24,Carouge,Appartement,165.6,2200000,13285,2024,,2024
+502,Rue Louis-de-Montfalcon 13,Carouge,Appartement,159.9,2100000,13131,2025,,2025
+503,"Rue de la Dôle 22, 24",Genève-Cité,Appartement,177.3,2190000,12355,2021,,2021
+504,Rue des Pavillons 5,Plainpalais,Appartement,240.5,2950000,12267,2022,,2022
+505,Chemin des Pâquerettes 5,Lancy,Appartement,254.2,3000000,11802,2022,,2022
+506,"Avenue Bella-Vista 11, 13",Veyrier,Appartement,247.0,2805000,11355,2021,,2021
+507,"Chemin de Vert-Pré 4, 6, 8",Lancy,Appartement,261.9,2950000,11263,2021,,2021
+508,"Avenue Bella-Vista 11, 13",Veyrier,Appartement,247.0,2770000,11213,2021,,2021
+509,Chemin des Mésanges 1a,Lancy,Appartement,196.9,2200000,11175,2024,,2024
