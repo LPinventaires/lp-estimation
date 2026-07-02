@@ -42,7 +42,19 @@
       Comparables trouvés{% if stats and stats.total %} <span style="color:var(--accent2);font-weight:600">({{ stats.total }})</span>{% endif %}
     </h2>
     <p style="color:var(--muted);margin:6px 0 16px;font-size:13.5px">
-      Filtrés par <strong>même quartier</strong>, <strong>surface ±20 %</strong>{% if e.type_bien %} et <strong>même famille de bien</strong>{% endif %} — puisés dans les estimations LP et la base de références.
+      {% set _lvl = stats.match_level if stats else 'strict' %}
+      {% if _lvl == 'strict' %}
+        Filtre strict : <strong>même quartier</strong>, <strong>surface ±20 %</strong>{% if e.type_bien %}, <strong>même famille de bien</strong>{% endif %}.
+      {% elif _lvl == 'surface ±40 %' %}
+        Filtre élargi : <strong>même quartier</strong>, <strong>surface ±40 %</strong>{% if e.type_bien %}, <strong>même famille</strong>{% endif %} — peu de biens strictement comparables trouvés.
+      {% elif _lvl == 'quartier + type' %}
+        Filtre élargi : <strong>même quartier</strong>{% if e.type_bien %} + <strong>même famille de bien</strong>{% endif %} — critère de surface levé faute de matchs.
+      {% elif _lvl == 'quartier + voisins' %}
+        Filtre étendu : le quartier de destination et ses <strong>quartiers voisins</strong>{% if e.type_bien %}, même famille de bien{% endif %} — faute de comparables directs sur le seul quartier.
+      {% elif _lvl == 'voisins, tous types' %}
+        Filtre le plus large : quartier + voisins, <strong>tous types résidentiels</strong> — la base ne contient aucun comparable strictement similaire.
+      {% endif %}
+      Puisés dans les estimations LP et la base Neatalerts.
     </p>
 
     {% set _house_types = ['Villa', 'Maison individuelle', 'Maison', 'Hôtel Particulier'] %}

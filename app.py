@@ -344,17 +344,129 @@ def _same_type_category(a, b):
     return (a in apt and b in apt) or (a in house and b in house)
 
 
+NEIGHBOR_QUARTIERS = {
+    "Champel": ["Miremont", "Florissant", "Malagnou"],
+    "Miremont": ["Champel", "Florissant"],
+    "Florissant": ["Champel", "Malagnou", "Miremont"],
+    "Malagnou": ["Florissant", "Champel"],
+    "Eaux-Vives": ["Villereuse", "La Grange", "Frontenex", "Contamines"],
+    "Villereuse": ["Eaux-Vives"],
+    "Cologny": ["Vandoeuvres", "Collonge-Bellerive", "Vésenaz"],
+    "Vandoeuvres": ["Cologny", "Chêne-Bougeries"],
+    "Chêne-Bougeries": ["Chêne-Bourg", "Thônex", "Cologny", "Vandoeuvres"],
+    "Chêne-Bourg": ["Chêne-Bougeries", "Thônex"],
+    "Thônex": ["Chêne-Bougeries", "Chêne-Bourg"],
+    "Vésenaz": ["Collonge-Bellerive", "Cologny"],
+    "Collonge-Bellerive": ["Vésenaz", "Anières", "Cologny"],
+    "Anières": ["Hermance", "Collonge-Bellerive", "Corsier"],
+    "Hermance": ["Anières", "Corsier"],
+    "Corsier": ["Anières", "Hermance"],
+    "Carouge": ["Plainpalais", "Acacias", "Bâtie"],
+    "Plainpalais": ["Jonction", "Acacias", "Cité", "Carouge"],
+    "Jonction": ["Plainpalais", "Acacias"],
+    "Acacias": ["Carouge", "Plainpalais", "Bâtie"],
+    "Pâquis": ["Saint-Gervais", "Grottes", "Nations"],
+    "Saint-Gervais": ["Pâquis", "Grottes"],
+    "Grottes": ["Pâquis", "Saint-Gervais", "Servette"],
+    "Servette": ["Saint-Jean", "Charmilles", "Grottes"],
+    "Saint-Jean": ["Servette", "Charmilles"],
+}
+
+MIN_COMPARABLES = 3   # objectif minimum
+
+
 def find_comparables(quartier, address, surface, type_bien, current_eid=None, user_id=None):
-    """Trouve les comparables réels pour un bien : même quartier, surface ±20 %, même catégorie.
+    """Trouve les comparables réels pour un bien avec fallback progressif.
 
-    Sources combinées :
-      1. Estimations passées de l'utilisateur (surface + type connus) — pertinent en priorité
-      2. RefPrice (base de références du marché — filtre par quartier + surface si dispo)
+    Ordre :
+      1. Filtre strict — même quartier, surface ±20 %, même famille de type
+      2. Élargir surface à ±40 % si <3 résultats
+      3. Ignorer la surface si <3 résultats
+      4. Inclure les quartiers voisins si <3 résultats
+      5. Ignorer le type si toujours <3 résultats
 
-    Retourne (proposed_prix_m2, comparables_dicts, stats) où chaque dict a :
-      adresse, quartier, type_bien, surface, prix_m2, prix_total, annee, kind, source
+    Retourne (proposed_prix_m2, comparables_dicts, stats) où stats.match_level indique
+    quel niveau de filtrage a été effectivement utilisé.
     """
+    def _search(_quartiers, _surface_tol, _use_type):
+        return _do_search(_quartiers, surface, _surface_tol, type_bien if _use_type else None,
+                          current_eid, user_id)
+
+    # Niveau 1 : strict
+    comps = _search([quartier], 0.20, True)
+    match_level = "strict"
+
+    # Niveau 2 : élargir surface à ±40 %
+    if len(comps) < MIN_COMPARABLES:
+        comps = _search([quartier], 0.40, True)
+        match_level = "surface ±40 %"
+
+    # Niveau 3 : ignorer surface
+    if len(comps) < MIN_COMPARABLES:
+        comps = _search([quartier], None, True)
+        match_level = "quartier + type"
+
+    # Niveau 4 : ajouter quartiers voisins
+    if len(comps) < MIN_COMPARABLES and quartier:
+        neighbors = [quartier] + NEIGHBOR_QUARTIERS.get(quartier, [])
+        comps = _search(neighbors, None, True)
+        match_level = "quartier + voisins"
+
+    # Niveau 5 : tout le quartier + voisins, tous types
+    if len(comps) < MIN_COMPARABLES and quartier:
+        neighbors = [quartier] + NEIGHBOR_QUARTIERS.get(quartier, [])
+        comps = _search(neighbors, None, False)
+        match_level = "voisins, tous types"
+
+    # Tri : LP d'abord (fiables), puis ventes, puis retenus, puis à vendre
+    kind_order = {"estimation": 0, "sold": 1, "retenu": 2, "forsale": 3}
+    comps.sort(key=lambda c: (kind_order.get(c["kind"], 9), -(c.get("prix_m2") or 0)))
+
+    # Prix proposé = moyenne des prix/m² des comparables vendus / LP / retenus
+    sold_pm2 = [c["prix_m2"] for c in comps if c["kind"] in ("sold", "retenu", "estimation")]
+    forsale_pm2 = [c["prix_m2"] for c in comps if c["kind"] == "forsale"]
+    proposed = None
+    if sold_pm2:
+        proposed = round(sum(sold_pm2) / len(sold_pm2))
+    elif forsale_pm2:
+        proposed = round(sum(forsale_pm2) / len(forsale_pm2) * 0.95)
+
+    stats = {
+        "total": len(comps),
+        "n_sold": sum(1 for c in comps if c["kind"] in ("sold", "retenu", "estimation")),
+        "n_forsale": sum(1 for c in comps if c["kind"] == "forsale"),
+        "min_pm2": min((c["prix_m2"] for c in comps), default=None),
+        "max_pm2": max((c["prix_m2"] for c in comps), default=None),
+        "avg_pm2": proposed,
+        "match_level": match_level,
+    }
+    return proposed, comps, stats
+
+
+def _do_search(quartiers, surface, surface_tol, type_bien, current_eid=None, user_id=None):
+    """Recherche interne — ne fait que le filtre correspondant aux paramètres passés."""
     comparables = []
+    quartiers_lc = {q.lower() for q in quartiers if q}
+
+    def _quartier_ok(r_quartier):
+        if not quartiers_lc:
+            return True
+        return r_quartier and r_quartier.lower() in quartiers_lc
+
+    def _surface_ok(r_surface):
+        if surface_tol is None or surface is None:
+            return True
+        if not r_surface:
+            return False
+        lo, hi = surface * (1 - surface_tol), surface * (1 + surface_tol)
+        return lo <= r_surface <= hi
+
+    def _type_ok(r_type):
+        if not type_bien:
+            return True
+        if not r_type:
+            return False
+        return _same_type_category(r_type, type_bien)
 
     # ---- Source 1 : estimations passées de l'utilisateur ----
     if user_id:
@@ -362,14 +474,12 @@ def find_comparables(quartier, address, surface, type_bien, current_eid=None, us
         if current_eid:
             q = q.filter(Estimation.id != current_eid)
         for est in q.all():
-            if quartier and est.quartier and est.quartier.lower() != quartier.lower():
+            if not _quartier_ok(est.quartier):
                 continue
-            if type_bien and not _same_type_category(est.type_bien, type_bien):
+            if not _type_ok(est.type_bien):
                 continue
-            if surface and est.surface:
-                lo, hi = surface * 0.8, surface * 1.2
-                if not (lo <= est.surface <= hi):
-                    continue
+            if not _surface_ok(est.surface):
+                continue
             if not est.prix_m2 or not est.surface:
                 continue
             comparables.append({
@@ -388,25 +498,14 @@ def find_comparables(quartier, address, surface, type_bien, current_eid=None, us
                 "date": est.created_at.strftime("%m/%Y") if est.created_at else "",
             })
 
-    # ---- Source 2 : RefPrice (marché) ----
+    # ---- Source 2 : RefPrice (marché + CSV LP) ----
     for r in RefPrice.query.all():
-        # Quartier — obligatoire si target en a un
-        if quartier:
-            if not r.quartier or r.quartier.lower() != quartier.lower():
-                continue
-        # Type — obligatoire si target en a un : on exclut les refs sans type déclaré
-        if type_bien:
-            if not r.type_bien:
-                continue
-            if not _same_type_category(r.type_bien, type_bien):
-                continue
-        # Surface — obligatoire si target en a une : on exclut les refs sans surface
-        if surface:
-            if not r.surface:
-                continue
-            lo, hi = surface * 0.8, surface * 1.2
-            if not (lo <= r.surface <= hi):
-                continue
+        if not _quartier_ok(r.quartier):
+            continue
+        if not _type_ok(r.type_bien):
+            continue
+        if not _surface_ok(r.surface):
+            continue
         if not r.prix_m2:
             continue
         prix_total = (r.prix_m2 * r.surface) if r.surface else None
@@ -426,29 +525,7 @@ def find_comparables(quartier, address, surface, type_bien, current_eid=None, us
             "date": r.annee or "",
         })
 
-    # ---- Prix proposé = moyenne des prix/m² des comparables directs (ventes / retenu) ----
-    sold_pm2 = [c["prix_m2"] for c in comparables if c["kind"] in ("sold", "retenu", "estimation")]
-    forsale_pm2 = [c["prix_m2"] for c in comparables if c["kind"] == "forsale"]
-    proposed = None
-    if sold_pm2:
-        proposed = round(sum(sold_pm2) / len(sold_pm2))
-    elif forsale_pm2:
-        # tempère un peu le "à vendre" (souvent surcoté)
-        proposed = round(sum(forsale_pm2) / len(forsale_pm2) * 0.95)
-
-    # Tri : ventes/retenu d'abord (les plus fiables), puis à vendre
-    kind_order = {"estimation": 0, "sold": 1, "retenu": 2, "forsale": 3}
-    comparables.sort(key=lambda c: (kind_order.get(c["kind"], 9), -(c.get("prix_m2") or 0)))
-
-    stats = {
-        "total": len(comparables),
-        "n_sold": sum(1 for c in comparables if c["kind"] in ("sold", "retenu", "estimation")),
-        "n_forsale": sum(1 for c in comparables if c["kind"] == "forsale"),
-        "min_pm2": min((c["prix_m2"] for c in comparables), default=None),
-        "max_pm2": max((c["prix_m2"] for c in comparables), default=None),
-        "avg_pm2": proposed,
-    }
-    return proposed, comparables, stats
+    return comparables
 
 
 # ----------------------- ROUTES -----------------------
