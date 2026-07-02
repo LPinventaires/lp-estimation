@@ -233,6 +233,23 @@ def logout():
     return redirect(url_for("index"))
 
 
+@app.route("/_debug/env")
+def debug_env():
+    """Diagnostic — indique si les variables d'env critiques sont définies (JAMAIS leur valeur)."""
+    pw = os.environ.get("APP_PASSWORD")
+    return jsonify({
+        "APP_PASSWORD_defined": pw is not None,
+        "APP_PASSWORD_length": len(pw) if pw else 0,
+        "APP_PASSWORD_first_char": pw[0] if pw else None,
+        "APP_PASSWORD_last_char": pw[-1] if pw else None,
+        "ANTHROPIC_API_KEY_defined": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "DATABASE_URL_defined": bool(os.environ.get("DATABASE_URL")),
+        "SECRET_KEY_defined": bool(os.environ.get("SECRET_KEY")),
+        "RAILWAY_ENVIRONMENT": os.environ.get("RAILWAY_ENVIRONMENT_NAME"),
+        "RAILWAY_SERVICE": os.environ.get("RAILWAY_SERVICE_NAME"),
+    })
+
+
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
