@@ -5,7 +5,7 @@
   <a class="btn secondary" href="{{ url_for('dashboard') }}">← Tableau de bord</a>
   <div style="display:flex;gap:10px;align-items:center">
     {% if ai_generated %}
-      <span class="pill" style="background:var(--accent-soft);letter-spacing:.04em" title="Rapport rédigé par Claude Fable 5">✨ Rapport IA</span>
+      <span class="pill" style="background:var(--accent-soft);letter-spacing:.04em" title="Rapport rédigé par Claude Opus 4.8">✨ Rapport IA</span>
       <a class="btn secondary" href="{{ url_for('estimation_report', eid=e.id, regenerate=1) }}" title="Régénérer le corps du rapport avec Claude">Régénérer</a>
     {% endif %}
     <a class="btn secondary" href="{{ url_for('estimation_export_pdf', eid=e.id) }}">Export PDF</a>

@@ -603,14 +603,14 @@ def _extraction_prompt() -> str:
 
 
 def _extract_from_content(content_blocks) -> dict:
-    """Appelle Claude Fable 5 avec un content (image ou texte) → dict de champs prêt pour le formulaire."""
+    """Appelle Claude Opus 4.8 avec un content (image ou texte) → dict de champs prêt pour le formulaire."""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY manquante")
     from anthropic import Anthropic
     client = Anthropic(api_key=api_key)
     response = client.messages.parse(
-        model="claude-fable-5",
+        model="claude-opus-4-8",
         max_tokens=1500,
         messages=[{"role": "user", "content": content_blocks}],
         output_format=PhotoExtraction,
@@ -711,7 +711,7 @@ QUARTIER_ATOUTS = {
 
 
 def _generate_lp_description(fields: dict) -> str:
-    """Génère un paragraphe LP (3-5 phrases) via Claude Fable 5. Retourne '' si l'API n'est pas dispo."""
+    """Génère un paragraphe LP (3-5 phrases) via Claude Opus 4.8. Retourne '' si l'API n'est pas dispo."""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return ""
@@ -743,7 +743,7 @@ Bien à décrire :
 
 Réponds uniquement avec le paragraphe (pas de préambule, pas de guillemets)."""
         response = client.messages.create(
-            model="claude-fable-5",
+            model="claude-opus-4-8",
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -778,7 +778,7 @@ def _format_comparables_for_prompt(comparables):
 
 
 def _generate_lp_report(e, comparables, stats, force=False):
-    """Génère un rapport LP complet via Claude Fable 5 et le renvoie sous forme HTML.
+    """Génère un rapport LP complet via Claude Opus 4.8 et le renvoie sous forme HTML.
     Résultat mis en cache dans e.report_ai. Si force=True, force la régénération.
     """
     if not force and e.report_ai:
@@ -879,7 +879,7 @@ CONSIGNES DE FORME
 - **Format** : réponds uniquement avec le HTML des 9 sections dans l'ordre, sans préambule, sans markdown, sans triple-backtick."""
 
         response = client.messages.create(
-            model="claude-fable-5",
+            model="claude-opus-4-8",
             max_tokens=3500,
             messages=[{"role": "user", "content": prompt}],
         )
