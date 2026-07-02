@@ -239,21 +239,6 @@ def logout():
     return redirect(url_for("index"))
 
 
-@app.route("/_debug/reload-csv")
-@login_required
-def debug_reload_csv():
-    """Diagnostic — tente de recharger tous les CSV et renvoie l'erreur exacte s'il y en a une."""
-    import traceback
-    try:
-        n = load_comparables_csv()
-        # Compte par source
-        from collections import Counter
-        by_source = Counter(r.source for r in RefPrice.query.all())
-        return jsonify({"loaded": n, "by_source": dict(by_source)})
-    except Exception as e:
-        return jsonify({"error": str(e), "traceback": traceback.format_exc()[-2000:]}), 500
-
-
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
