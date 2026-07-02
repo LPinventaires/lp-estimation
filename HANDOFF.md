@@ -243,16 +243,16 @@ Même chose mais Claude Vision analyse l'image (redimensionnée à 1568px max c�
 Si le champ description est vide au moment de générer, Claude rédige un paragraphe de 3–5 phrases dans le style sobre et factuel LP, à partir des autres champs. Le prompt inclut des atouts prédéfinis par quartier (Champel, Eaux-Vives, Miremont).
 
 ### Coûts approximatifs
-Le site tourne sur **Claude Opus 4.8** (modèle le plus capable d'Anthropic à ce jour, tarif $10/$50 par MTok). Ordres de grandeur :
+Le site tourne sur **Claude Opus 4.8** (tarif $5/$25 par MTok, haut niveau de qualité). Ordres de grandeur :
 
-- Extraction texte : ~0.02 USD par appel
-- Extraction photo : ~0.02–0.04 USD par appel
-- Rédaction description auto : ~0.01 USD par appel
-- Génération du rapport complet : ~0.05–0.10 USD par estimation (une fois, puis mis en cache en base)
+- Extraction texte : ~0.01 USD par appel
+- Extraction photo : ~0.01–0.02 USD par appel
+- Rédaction description auto : ~0.005 USD par appel
+- Génération du rapport complet : ~0.03–0.05 USD par estimation (une fois, puis mis en cache en base)
 
-Un usage quotidien de 10 estimations coûte environ **0.5–1.0 USD/jour** soit **15–25 USD/mois**. À surveiller sur https://console.anthropic.com/settings/usage.
+Un usage quotidien de 10 estimations coûte environ **0.25–0.50 USD/jour** soit **8–15 USD/mois**. À surveiller sur https://console.anthropic.com/settings/usage.
 
-Si tu veux baisser les coûts sans perdre trop en qualité, tu peux repasser sur `claude-opus-4-8` (moitié prix) ou `claude-sonnet-5` (encore plus abordable) — il suffit de changer les 3 occurrences de `model="claude-opus-4-8"` dans `app.py`.
+Si tu veux baisser les coûts, tu peux passer sur `claude-sonnet-5` (moitié prix, quasi la même qualité). Si tu veux la meilleure qualité possible (au coût d'un temps de réponse ~2× plus lent), tu peux passer sur `claude-fable-5`. Il suffit de changer les 3 occurrences de `model="claude-opus-4-8"` dans `app.py`.
 
 ### Que se passe-t-il si la clé Anthropic est absente ou révoquée ?
 - Les endpoints d'analyse renvoient une erreur claire à l'utilisateur ("Clé API Anthropic non configurée")

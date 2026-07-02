@@ -1808,7 +1808,7 @@ def _migrate():
             db.session.rollback()
 
 
-REPORT_PROMPT_VERSION = "v2-lp-official-2026-07-02"
+REPORT_PROMPT_VERSION = "v2-lp-official-opus48-2026-07-02"
 
 
 def _invalidate_stale_ai_reports():
