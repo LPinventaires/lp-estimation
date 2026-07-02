@@ -211,10 +211,10 @@ def _shared_user():
 def login():
     if session.get("user_id"):
         return redirect(url_for("dashboard"))
-    expected = os.environ.get("APP_PASSWORD", "LP-estimation")
+    expected = (os.environ.get("APP_PASSWORD") or "LP-estimation").strip()
     if request.method == "POST":
-        password = request.form.get("password") or ""
-        if password == expected:
+        password = (request.form.get("password") or "").strip()
+        if password and password == expected:
             session["user_id"] = _shared_user().id
             return redirect(url_for("dashboard"))
         flash("Mot de passe incorrect.")
