@@ -17,8 +17,41 @@
     <a href="{{ url_for('estimation_new') }}" class="btn">Créer ma première estimation</a>
   </div>
 {% else %}
+
+  {# --- FILTRES --- #}
+  <div class="card" style="margin-bottom:22px;padding:18px 22px">
+    <div class="section-title" style="margin-top:0">Rechercher / filtrer</div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:12px;align-items:end">
+      <div class="field" style="margin-bottom:0">
+        <label>Adresse ou description</label>
+        <input type="text" id="cls-search" placeholder="Rechercher…" autocomplete="off">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Année</label>
+        <select id="cls-year">
+          <option value="">Toutes</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Prix min (CHF)</label>
+        <input type="number" id="cls-min" placeholder="0" min="0" step="100000">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Prix max (CHF)</label>
+        <input type="number" id="cls-max" placeholder="∞" min="0" step="100000">
+      </div>
+      <button type="button" id="cls-reset" class="btn secondary" style="padding:11px 14px;white-space:nowrap">Réinitialiser</button>
+    </div>
+    <div id="cls-count" style="margin-top:12px;font-size:12.5px;color:var(--muted)"></div>
+  </div>
+
   {% macro estim_card(e) %}
+    {% set _search_blob = ((e.address or '') ~ ' ' ~ (e.description or '') ~ ' ' ~ (e.type_bien or '') ~ ' ' ~ (e.quartier or ''))|lower %}
     <a href="{{ url_for('estimation_report', eid=e.id) }}"
+       class="estim-item"
+       data-search="{{ _search_blob }}"
+       data-year="{{ e.created_at.strftime('%Y') }}"
+       data-price="{{ e.prix_presentation }}"
        style="display:block;padding:14px 16px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);margin-bottom:10px;transition:.12s"
        onmouseover="this.style.borderColor='var(--accent)';this.style.background='#faf3e8'"
        onmouseout="this.style.borderColor='var(--line)';this.style.background='var(--bg2)'">
@@ -80,5 +113,66 @@
   details.card > summary::-webkit-details-marker { display:none }
   details.card[open] > summary .chevron { transform:rotate(90deg) }
   details.card > summary .chevron { transition:transform .18s;display:inline-block }
+  .estim-item.hidden { display:none !important }
+  details.card.no-match { display:none }
+  @media (max-width:820px) {
+    #cls-search, #cls-year, #cls-min, #cls-max { min-width:0 }
+    .card > div[style*="grid-template-columns"] { grid-template-columns:1fr 1fr !important }
+  }
 </style>
+
+<script>
+(function() {
+  const search = document.getElementById('cls-search');
+  const yearSel = document.getElementById('cls-year');
+  const minInp = document.getElementById('cls-min');
+  const maxInp = document.getElementById('cls-max');
+  const reset = document.getElementById('cls-reset');
+  const count = document.getElementById('cls-count');
+  const items = Array.from(document.querySelectorAll('.estim-item'));
+  const sections = Array.from(document.querySelectorAll('details.card'));
+
+  // Peupler le sélecteur d'année depuis les données
+  const years = Array.from(new Set(items.map(i => i.dataset.year))).filter(Boolean).sort().reverse();
+  years.forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    yearSel.appendChild(opt);
+  });
+
+  function apply() {
+    const q = (search.value || '').toLowerCase().trim();
+    const y = yearSel.value;
+    const mn = parseFloat(minInp.value) || 0;
+    const mx = parseFloat(maxInp.value) || Infinity;
+
+    let visible = 0;
+    items.forEach(item => {
+      const okQ = !q || item.dataset.search.includes(q);
+      const okY = !y || item.dataset.year === y;
+      const price = parseFloat(item.dataset.price) || 0;
+      const okP = price >= mn && price <= mx;
+      const show = okQ && okY && okP;
+      item.classList.toggle('hidden', !show);
+      if (show) visible++;
+    });
+
+    // Masquer les sections qui n'ont plus aucun élément visible
+    sections.forEach(sec => {
+      const visIn = sec.querySelectorAll('.estim-item:not(.hidden)').length;
+      sec.classList.toggle('no-match', visIn === 0);
+    });
+
+    count.textContent = `${visible} estimation${visible !== 1 ? 's' : ''} affichée${visible !== 1 ? 's' : ''} sur ${items.length}`;
+  }
+
+  [search, yearSel, minInp, maxInp].forEach(el => el.addEventListener('input', apply));
+  reset.addEventListener('click', () => {
+    search.value = ''; yearSel.value = ''; minInp.value = ''; maxInp.value = '';
+    apply();
+  });
+
+  apply();
+})();
+</script>
 {% endblock %}

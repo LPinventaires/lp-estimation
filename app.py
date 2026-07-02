@@ -57,6 +57,7 @@ class Estimation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
+    report_ai = db.Column(db.Text, nullable=True)  # narratif LP généré par Claude (mis en cache)
     address = db.Column(db.String(200))
     quartier = db.Column(db.String(120))
     type_bien = db.Column(db.String(80))
@@ -753,6 +754,114 @@ Réponds uniquement avec le paragraphe (pas de préambule, pas de guillemets).""
         return ""
 
 
+def _format_comparables_for_prompt(comparables):
+    """Formate 5 comparables pour le prompt Claude — reste concis."""
+    lines = []
+    for c in comparables[:5]:
+        parts = [c.get("adresse") or "—"]
+        if c.get("type_bien"):
+            parts.append(c["type_bien"])
+        if c.get("surface"):
+            parts.append(f"{c['surface']} m²")
+        if c.get("annee"):
+            parts.append(c["annee"])
+        if c.get("prix_m2"):
+            parts.append(f"{int(c['prix_m2'])} CHF/m²")
+        if c.get("prix_total"):
+            parts.append(f"prix total ≈ {int(c['prix_total'])} CHF")
+        line = " · ".join(str(p) for p in parts)
+        if c.get("description"):
+            desc = " ".join(c["description"].split())[:200]
+            line += f" — {desc}"
+        lines.append(f"- {line}")
+    return "\n".join(lines) if lines else "(aucun comparable retenu)"
+
+
+def _generate_lp_report(e, comparables, stats, force=False):
+    """Génère un rapport LP complet via Claude Opus 4.8 et le renvoie sous forme HTML.
+    Résultat mis en cache dans e.report_ai. Si force=True, force la régénération.
+    """
+    if not force and e.report_ai:
+        return e.report_ai
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return ""
+
+    try:
+        from anthropic import Anthropic
+        client = Anthropic(api_key=api_key)
+
+        atouts_quartier = QUARTIER_ATOUTS.get(e.quartier or "", "")
+        comp_block = _format_comparables_for_prompt(comparables or [])
+        match_level = (stats or {}).get("match_level", "strict")
+        avg_pm2 = (stats or {}).get("avg_pm2")
+        min_pm2 = (stats or {}).get("min_pm2")
+        max_pm2 = (stats or {}).get("max_pm2")
+
+        prompt = f"""Tu es un rédacteur senior de Leonard Properties SA (courtier immobilier à Genève).
+Rédige le corps d'un rapport d'estimation hédoniste pour un bien, dans le style **sobre, factuel et élégant** de Leonard Properties.
+
+Contexte du bien :
+- Adresse : {e.address or 'non précisée'}
+- Quartier : {e.quartier or '—'}{f' ({atouts_quartier})' if atouts_quartier else ''}
+- Type : {e.type_bien or '—'}
+- Surface : {e.surface or '?'} m²
+- Pièces : {e.pieces or '?'}
+- Étage : {e.etage or '?'}
+- Année : {e.annee or '?'}
+- État : {e.etat or '?'}
+- Extérieurs : {e.balcon or 0} m² (pondération {int((e.balcon_pond or 0) * 100)} %)
+- Parkings : {e.parking_nb or 0} (valeur unitaire {int(e.parking_val or 0)} CHF)
+- Prix/m² retenu : {int(e.prix_m2 or 0)} CHF
+- Description saisie : {(e.description or '').strip() or '—'}
+- Atouts : {(e.atouts or '').strip() or '—'}
+- Points d'attention : {(e.inconvenients or '').strip() or '—'}
+- Marge de négociation + commission : {int((e.marge or 0) * 100)} %
+- Valeur vénale calculée : {int(e.valeur_venale or 0)} CHF
+- Prix de présentation : {int(e.prix_presentation or 0)} CHF
+
+Comparables retenus (filtre : {match_level}) :
+{comp_block}
+
+Statistiques du panel : moyenne {avg_pm2 or '—'} CHF/m² · fourchette {min_pm2 or '—'} — {max_pm2 or '—'} CHF/m².
+
+Consignes :
+- Rédige uniquement le corps du rapport, en français impeccable.
+- Ne mets pas de titre principal (H1). Utilise `<h2>` pour les sections principales, `<h3>` pour les sous-sections.
+- **Sections attendues, dans l'ordre :**
+  1. « Introduction » (adresse aimable au client, 2-3 phrases : contexte, objectif du rapport)
+  2. « Méthode d'évaluation » (méthode hédoniste comparative, 3-4 phrases sobres)
+  3. « Descriptif du bien » (paragraphe descriptif riche, mentionne quartier et atouts, 4-6 phrases ; puis, si pertinent, des sous-sections `<h3>Atouts</h3><ul>…</ul>` et `<h3>Points d'attention</h3><ul>…</ul>`)
+  4. « Analyse des comparables » (2-3 paragraphes qui commentent finement le panel de comparables retenus : qualité, fourchette, positionnement du bien vis-à-vis d'eux ; cite au moins 2 comparables spécifiques par leur adresse)
+  5. « Positionnement et prix de présentation » (justification du prix/m² retenu et du prix de présentation, ton d'expertise, 3-4 phrases ; termine sur une phrase du type « prix de présentation initial ambitieux et réaliste, ajustable en fonction du retour marché »)
+  6. « Conclusions et réserves » (2 courts paragraphes : conclusion + rappel des limites méthodologiques de l'estimation, cf. décote de servitudes, écart possible +/- 10 %, ce n'est pas une expertise foncière officielle)
+- **Ton LP** : professionnel, sobre, factuel. Évite les superlatifs vides (« magnifique », « exceptionnel ») sauf si les faits les justifient. Français impeccable, phrases complètes.
+- **N'invente rien** qui ne soit pas dans les données ci-dessus. Si un champ est vide, ne le mentionne pas.
+- Utilise `<p>`, `<h2>`, `<h3>`, `<ul>`, `<li>`, `<strong>` uniquement (pas de div, pas de style inline). Pas de guillemets courbes autour du HTML.
+- Réponds uniquement avec le HTML des sections, dans l'ordre demandé, sans préambule ni markdown."""
+
+        response = client.messages.create(
+            model="claude-opus-4-8",
+            max_tokens=3500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        html = "".join(b.text for b in response.content if b.type == "text").strip()
+        # Nettoyage : retire d'éventuels blocs Markdown
+        if html.startswith("```"):
+            html = html.split("```", 2)[1]
+            if html.startswith("html"):
+                html = html[4:]
+            html = html.strip()
+        # Persiste
+        e.report_ai = html
+        db.session.commit()
+        return html
+    except Exception as exc:
+        app.logger.warning(f"Rapport IA échoué : {exc}")
+        return ""
+
+
 @app.route("/estimation/new", methods=["GET", "POST"])
 @login_required
 def estimation_new():
@@ -793,19 +902,25 @@ def estimation_new():
 @login_required
 def estimation_report(eid):
     e = own_estimation_or_404(eid)
+    force = request.args.get("regenerate") == "1"
     # Comparables filtrés (même quartier + surface ±20% + même catégorie)
     proposed_pm2, comparables, stats = find_comparables(
         e.quartier, e.address, e.surface, e.type_bien,
         current_eid=e.id, user_id=session.get("user_id"),
     )
-    # On garde build_report pour la partie "corps du rapport" LP (méthode, calcul, réserves)
-    _, legacy_pool = ref_for(e.quartier, e.address)
-    sold = [r for r in legacy_pool if r.kind in ("sold", "retenu")]
-    forsale = [r for r in legacy_pool if r.kind == "forsale"]
-    html = build_report(e, sold, forsale)
+    # Corps narratif LP : tenter la génération Claude (avec cache), fallback sur build_report()
+    html_ai = _generate_lp_report(e, comparables, stats, force=force)
+    if html_ai:
+        html = html_ai
+    else:
+        _, legacy_pool = ref_for(e.quartier, e.address)
+        sold = [r for r in legacy_pool if r.kind in ("sold", "retenu")]
+        forsale = [r for r in legacy_pool if r.kind == "forsale"]
+        html = build_report(e, sold, forsale)
     return render_template("report.html", e=e, report_html=html,
                            comparables=comparables, stats=stats,
-                           proposed_pm2=proposed_pm2)
+                           proposed_pm2=proposed_pm2,
+                           ai_generated=bool(html_ai))
 
 
 @app.route("/estimation/<int:eid>/delete", methods=["POST"])
@@ -1052,6 +1167,248 @@ def estimation_export_pdf(eid):
     return render_template("export_pdf.html", e=e, report_html=html)
 
 
+@app.route("/estimation/<int:eid>/export.docx")
+@login_required
+def estimation_export_docx(eid):
+    """Exporte une estimation en Word (.docx) au format LP — en-tête logo, sections, signature."""
+    from docx import Document
+    from docx.shared import Pt, Cm, RGBColor, Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    from html.parser import HTMLParser
+
+    e = own_estimation_or_404(eid)
+
+    # On s'assure d'avoir un corps de rapport (Claude ou fallback)
+    _, comparables, stats = find_comparables(
+        e.quartier, e.address, e.surface, e.type_bien,
+        current_eid=e.id, user_id=session.get("user_id"),
+    )
+    body_html = _generate_lp_report(e, comparables, stats)
+    if not body_html:
+        _, legacy_pool = ref_for(e.quartier, e.address)
+        sold_l = [r for r in legacy_pool if r.kind in ("sold", "retenu")]
+        forsale_l = [r for r in legacy_pool if r.kind == "forsale"]
+        body_html = build_report(e, sold_l, forsale_l)
+
+    doc = Document()
+
+    # Marges A4 raisonnables
+    for section in doc.sections:
+        section.top_margin = Cm(2)
+        section.bottom_margin = Cm(2)
+        section.left_margin = Cm(2.4)
+        section.right_margin = Cm(2.4)
+
+    # Style de base
+    style = doc.styles["Normal"]
+    style.font.name = "Georgia"
+    style.font.size = Pt(11)
+
+    LP_GOLD = RGBColor(0xB8, 0x89, 0x5B)
+    LP_INK = RGBColor(0x2A, 0x25, 0x20)
+
+    def _set_heading(paragraph, size=16, color=LP_INK, bold=True):
+        for run in paragraph.runs:
+            run.font.name = "Georgia"
+            run.font.size = Pt(size)
+            run.font.bold = bold
+            run.font.color.rgb = color
+
+    # ------ EN-TÊTE ------
+    logo_path = os.path.join(app.config["UPLOAD_FOLDER"], DEFAULT_LOGO_FILENAME)
+    if os.path.exists(logo_path):
+        header_p = doc.add_paragraph()
+        header_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = header_p.add_run()
+        try:
+            run.add_picture(logo_path, width=Inches(1.4))
+        except Exception:
+            pass
+
+    brand_p = doc.add_paragraph()
+    brand_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = brand_p.add_run("LEONARD PROPERTIES")
+    run.font.name = "Georgia"
+    run.font.size = Pt(14)
+    run.font.bold = True
+    run.font.color.rgb = LP_INK
+
+    tag_p = doc.add_paragraph()
+    tag_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = tag_p.add_run("Rapport d'estimation hédoniste  ·  " + e.created_at.strftime("%d.%m.%Y"))
+    run.font.name = "Georgia"
+    run.font.size = Pt(10)
+    run.font.italic = True
+    run.font.color.rgb = LP_GOLD
+
+    # Titre bien
+    doc.add_paragraph()
+    title_p = doc.add_paragraph()
+    title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = title_p.add_run(e.address or "Bien à estimer")
+    run.font.name = "Georgia"
+    run.font.size = Pt(20)
+    run.font.bold = True
+    run.font.color.rgb = LP_INK
+
+    subtitle_p = doc.add_paragraph()
+    subtitle_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    subtitle_parts = []
+    if e.type_bien: subtitle_parts.append(e.type_bien)
+    if e.surface: subtitle_parts.append(f"{int(e.surface)} m²")
+    if e.quartier: subtitle_parts.append(e.quartier)
+    run = subtitle_p.add_run("  ·  ".join(subtitle_parts))
+    run.font.name = "Georgia"
+    run.font.size = Pt(11)
+    run.font.color.rgb = LP_GOLD
+
+    # ------ SYNTHÈSE ------
+    doc.add_paragraph()
+    tbl = doc.add_table(rows=2, cols=3)
+    tbl.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    tbl.autofit = True
+    headers = ["Valeur vénale", "Prix / m² retenu", "Prix de présentation"]
+    values = [
+        f"CHF {int(e.valeur_venale or 0):,}".replace(",", "'"),
+        f"CHF {int(e.prix_m2 or 0):,}".replace(",", "'"),
+        f"CHF {int(e.prix_presentation or 0):,}".replace(",", "'"),
+    ]
+    for i, h in enumerate(headers):
+        cell = tbl.rows[0].cells[i]
+        p = cell.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run(h)
+        run.font.name = "Georgia"; run.font.size = Pt(9); run.font.bold = True
+        run.font.color.rgb = LP_GOLD
+    for i, v in enumerate(values):
+        cell = tbl.rows[1].cells[i]
+        p = cell.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run(v)
+        run.font.name = "Georgia"; run.font.size = Pt(14); run.font.bold = True
+        run.font.color.rgb = LP_INK
+
+    # ------ COMPARABLES (max 3) ------
+    if comparables:
+        doc.add_paragraph()
+        h = doc.add_paragraph("Comparables retenus")
+        _set_heading(h, size=15, color=LP_INK)
+        for c in comparables[:3]:
+            p = doc.add_paragraph()
+            r = p.add_run(c["adresse"])
+            r.font.name = "Georgia"; r.font.size = Pt(12); r.font.bold = True
+            r.font.color.rgb = LP_INK
+            sub = []
+            if c.get("type_bien"): sub.append(c["type_bien"])
+            if c.get("annee"): sub.append(str(c["annee"]))
+            if c.get("surface"): sub.append(f"{int(c['surface'])} m²")
+            if sub:
+                p2 = doc.add_paragraph()
+                r = p2.add_run(" · ".join(sub))
+                r.font.name = "Georgia"; r.font.size = Pt(10); r.font.italic = True
+                r.font.color.rgb = LP_GOLD
+            prix_line = []
+            if c.get("prix_total"):
+                prix_line.append(f"CHF {int(c['prix_total']):,}".replace(",", "'"))
+            if c.get("prix_m2"):
+                prix_line.append(f"{int(c['prix_m2']):,} CHF/m²".replace(",", "'"))
+            if prix_line:
+                p3 = doc.add_paragraph()
+                r = p3.add_run(" · ".join(prix_line))
+                r.font.name = "Georgia"; r.font.size = Pt(10); r.font.bold = True
+                r.font.color.rgb = LP_INK
+            if c.get("description"):
+                p4 = doc.add_paragraph()
+                r = p4.add_run(" ".join((c["description"]).split()))
+                r.font.name = "Georgia"; r.font.size = Pt(10); r.font.italic = True
+
+    # ------ CORPS DU RAPPORT (parse HTML minimaliste) ------
+    doc.add_paragraph()
+
+    class _HtmlToDocx(HTMLParser):
+        def __init__(self, document):
+            super().__init__()
+            self.doc = document
+            self.stack = []
+            self.current_para = None
+            self.in_ul = False
+            self.bold = False
+            self.italic = False
+
+        def handle_starttag(self, tag, attrs):
+            t = tag.lower()
+            if t in ("h2",):
+                self.current_para = self.doc.add_paragraph()
+                self.stack.append(("h2", self.current_para))
+            elif t in ("h3",):
+                self.current_para = self.doc.add_paragraph()
+                self.stack.append(("h3", self.current_para))
+            elif t == "p":
+                self.current_para = self.doc.add_paragraph()
+                self.stack.append(("p", self.current_para))
+            elif t == "ul":
+                self.in_ul = True
+            elif t == "li":
+                self.current_para = self.doc.add_paragraph(style="List Bullet")
+                self.stack.append(("li", self.current_para))
+            elif t in ("strong", "b"):
+                self.bold = True
+            elif t in ("em", "i"):
+                self.italic = True
+
+        def handle_endtag(self, tag):
+            t = tag.lower()
+            if t in ("h2", "h3", "p", "li") and self.stack:
+                kind, para = self.stack.pop()
+                if kind == "h2":
+                    _set_heading(para, size=15, color=LP_INK)
+                elif kind == "h3":
+                    _set_heading(para, size=12, color=LP_GOLD)
+                self.current_para = None
+            elif t == "ul":
+                self.in_ul = False
+            elif t in ("strong", "b"):
+                self.bold = False
+            elif t in ("em", "i"):
+                self.italic = False
+
+        def handle_data(self, data):
+            if not data.strip() and self.current_para is None:
+                return
+            if self.current_para is None:
+                self.current_para = self.doc.add_paragraph()
+            run = self.current_para.add_run(data)
+            run.font.name = "Georgia"
+            run.font.size = Pt(11)
+            run.bold = self.bold
+            run.italic = self.italic
+
+    parser = _HtmlToDocx(doc)
+    parser.feed(body_html)
+
+    # ------ SIGNATURE ------
+    doc.add_paragraph()
+    sig_p = doc.add_paragraph()
+    sig_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    run = sig_p.add_run(e.courtier or "LEONARD PROPERTIES SA")
+    run.font.name = "Georgia"; run.font.size = Pt(11); run.font.bold = True
+    run.font.color.rgb = LP_INK
+
+    # Export
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    filename = f"estimation-{(e.address or 'bien').lower().replace(' ', '-')[:50]}-{e.id}.docx"
+    return send_file(
+        buf,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
 @app.route("/import-csv", methods=["GET", "POST"])
 @login_required
 def import_csv():
@@ -1149,6 +1506,66 @@ def estimation_export_csv(eid):
         mimetype="text/csv",
         as_attachment=True,
         download_name=f"estimation_{e.id}.csv"
+    )
+
+
+@app.route("/api/backup")
+@login_required
+def api_backup():
+    """Backup complet de la base — users, estimations, refs, settings, audit logs.
+    Retourne un JSON téléchargeable, à archiver hors-Railway pour parer à une perte de conteneur.
+    """
+    def _serialize_est(e):
+        return {
+            "id": e.id, "user_id": e.user_id,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+            "address": e.address, "quartier": e.quartier, "type_bien": e.type_bien,
+            "surface": e.surface, "pieces": e.pieces, "etage": e.etage,
+            "annee": e.annee, "etat": e.etat,
+            "balcon": e.balcon, "balcon_pond": e.balcon_pond,
+            "parking_nb": e.parking_nb, "parking_val": e.parking_val,
+            "prix_m2": e.prix_m2, "marge": e.marge,
+            "description": e.description, "atouts": e.atouts,
+            "inconvenients": e.inconvenients, "courtier": e.courtier,
+            "notes": e.notes,
+            "valeur_venale": e.valeur_venale,
+            "prix_presentation": e.prix_presentation,
+        }
+    payload = {
+        "meta": {
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "app": "lp-estimation",
+            "version": "1.0",
+        },
+        "users": [
+            {"id": u.id, "email": u.email, "name": u.name,
+             "created_at": u.created_at.isoformat() if u.created_at else None}
+            for u in User.query.all()
+        ],
+        "estimations": [_serialize_est(e) for e in Estimation.query.all()],
+        "ref_prices": [
+            {"id": r.id, "quartier": r.quartier, "adresse": r.adresse,
+             "type_bien": r.type_bien, "surface": r.surface,
+             "prix_m2": r.prix_m2, "prix_total": r.prix_total,
+             "annee": r.annee, "source": r.source, "kind": r.kind,
+             "description": r.description, "reference": r.reference}
+            for r in RefPrice.query.all()
+        ],
+        "settings": [{"key": s.key, "value": s.value} for s in Setting.query.all()],
+        "audit_logs": [
+            {"id": l.id, "action": l.action, "estimation_id": l.estimation_id,
+             "created_at": l.created_at.isoformat() if l.created_at else None,
+             "description": l.description}
+            for l in AuditLog.query.all()
+        ],
+    }
+    import json
+    filename = f"backup_lp-estimation_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.json"
+    return send_file(
+        io.BytesIO(json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")),
+        mimetype="application/json",
+        as_attachment=True,
+        download_name=filename,
     )
 
 
@@ -1340,6 +1757,7 @@ def _migrate():
     from sqlalchemy import text
     for stmt in (
         "ALTER TABLE estimation ADD COLUMN user_id INTEGER",
+        "ALTER TABLE estimation ADD COLUMN report_ai TEXT",
         "ALTER TABLE ref_price ADD COLUMN surface FLOAT",
         "ALTER TABLE ref_price ADD COLUMN type_bien VARCHAR(80)",
         "ALTER TABLE ref_price ADD COLUMN prix_total FLOAT",

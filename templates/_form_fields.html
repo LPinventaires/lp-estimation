@@ -47,9 +47,105 @@
 <div class="card">
   <div class="section-title">Descriptif (optionnel)</div>
   <div class="field"><label>Situation &amp; description</label><textarea name="description" rows="3" placeholder="Situation, prestations, distribution…"></textarea></div>
-  <div class="grid">
-    <div class="field"><label>Atouts (un par ligne)</label><textarea name="atouts" rows="3"></textarea></div>
-    <div class="field"><label>Points d'attention (un par ligne)</label><textarea name="inconvenients" rows="3"></textarea></div>
+
+  {# --- ATOUTS — tags à cocher + zone libre --- #}
+  <div class="field" style="margin-bottom:8px">
+    <label>Atouts</label>
+    <div class="tag-picker" data-target="atouts" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+      {% for tag in [
+        'Vue lac','Vue rade','Vue campagne','Vue dégagée','Ensoleillé','Calme',
+        'Dernier étage','Ascenseur','Terrasse','Balcon','Loggia','Jardin','Piscine',
+        'Cave','Buanderie','Grenier','Cheminée','Parquet',
+        'Cuisine équipée','Cuisine ouverte','Grand séjour','Plafonds hauts',
+        'Rénové récemment','Excellent état','Immeuble de standing',
+        'Parking couvert','Box',"Proche transports",'Proche écoles','Proche commerces',
+        'Charge de PPE modérée'
+      ] %}
+        <span class="tag tag-atout" data-value="{{ tag }}" style="cursor:pointer;padding:5px 11px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);font-size:12.5px;color:var(--ink-soft);transition:.12s;user-select:none">{{ tag }}</span>
+      {% endfor %}
+    </div>
+    <textarea name="atouts" rows="3" placeholder="Autres atouts, format libre (un par ligne)…">{{ prefill.atouts or '' }}</textarea>
   </div>
+
+  {# --- INCONVÉNIENTS — tags à cocher + zone libre --- #}
+  <div class="field" style="margin-bottom:8px">
+    <label>Points d'attention</label>
+    <div class="tag-picker" data-target="inconvenients" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+      {% for tag in [
+        'Travaux à prévoir','Rafraîchissement à faire','Cuisine à refaire','Salle de bain vieillissante',
+        'Isolation faible','Chauffage ancien','Fenêtres à changer',
+        'RDC','Étage bas','Vis-à-vis','Bruyant','Trafic proche','Sans ascenseur',
+        'Petites pièces','Distribution atypique','Peu de rangements',
+        'Sans balcon','Sans extérieur','Sans parking',
+        'Charges de PPE élevées','Travaux votés','Servitudes','Copropriété importante'
+      ] %}
+        <span class="tag tag-incon" data-value="{{ tag }}" style="cursor:pointer;padding:5px 11px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);font-size:12.5px;color:var(--ink-soft);transition:.12s;user-select:none">{{ tag }}</span>
+      {% endfor %}
+    </div>
+    <textarea name="inconvenients" rows="3" placeholder="Autres points d'attention, format libre (un par ligne)…">{{ prefill.inconvenients or '' }}</textarea>
+  </div>
+
   <div class="field"><label>Courtier</label><input name="courtier" placeholder="Nom · LEONARD PROPERTIES SA"></div>
 </div>
+
+<script>
+(function() {
+  const pickers = document.querySelectorAll('.tag-picker');
+  pickers.forEach(function(picker) {
+    const targetName = picker.dataset.target;
+    const textarea = document.querySelector(`textarea[name="${targetName}"]`);
+    if (!textarea) return;
+
+    // Initial sync : coche les tags déjà présents dans la textarea
+    function syncFromTextarea() {
+      const lines = (textarea.value || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      picker.querySelectorAll('.tag').forEach(function(tag) {
+        const v = tag.dataset.value;
+        const active = lines.some(function(l) { return l.toLowerCase() === v.toLowerCase(); });
+        setTagState(tag, active);
+      });
+    }
+
+    function setTagState(tag, active) {
+      if (active) {
+        tag.style.background = 'var(--accent)';
+        tag.style.color = '#fff';
+        tag.style.borderColor = 'var(--accent2)';
+        tag.dataset.active = '1';
+      } else {
+        tag.style.background = 'var(--bg2)';
+        tag.style.color = 'var(--ink-soft)';
+        tag.style.borderColor = 'var(--line)';
+        tag.dataset.active = '';
+      }
+    }
+
+    function updateTextarea() {
+      const activeTags = Array.from(picker.querySelectorAll('.tag'))
+        .filter(function(t) { return t.dataset.active === '1'; })
+        .map(function(t) { return t.dataset.value; });
+
+      // Lignes libres = celles qui NE sont pas dans la liste des tags connus
+      const knownTags = Array.from(picker.querySelectorAll('.tag'))
+        .map(function(t) { return t.dataset.value.toLowerCase(); });
+      const currentLines = (textarea.value || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const freeLines = currentLines.filter(function(l) { return !knownTags.includes(l.toLowerCase()); });
+
+      const merged = activeTags.concat(freeLines);
+      textarea.value = merged.join('\n');
+    }
+
+    picker.querySelectorAll('.tag').forEach(function(tag) {
+      tag.addEventListener('click', function() {
+        setTagState(tag, tag.dataset.active !== '1');
+        updateTextarea();
+      });
+    });
+
+    // Sync inverse : si l'utilisateur tape dans la textarea, resync les tags
+    textarea.addEventListener('input', function() { syncFromTextarea(); });
+
+    syncFromTextarea();
+  });
+})();
+</script>
