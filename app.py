@@ -239,6 +239,79 @@ def logout():
     return redirect(url_for("index"))
 
 
+IMPORT_LP_NOTE = "Importé depuis rapport LP"
+
+
+@app.route("/admin/import-lp-estimations")
+@login_required
+def admin_import_lp_estimations():
+    """Injecte les estimations LP passées (data/comparables_estimations_lp.csv) dans la table Estimation
+    de l'utilisateur connecté, pour qu'elles apparaissent dans le Classeur.
+    Idempotent : purge d'abord les précédents imports par leur note distinctive."""
+    import csv as _csv, re as _re
+    path = os.path.join(os.path.dirname(__file__), "data", "comparables_estimations_lp.csv")
+    if not os.path.exists(path):
+        return jsonify({"error": "CSV absent"}), 404
+
+    uid = session.get("user_id")
+    # Purge des imports précédents (idempotent)
+    Estimation.query.filter_by(user_id=uid, notes=IMPORT_LP_NOTE).delete()
+    db.session.commit()
+
+    inserted = 0
+    skipped = 0
+    with open(path, encoding="utf-8") as f:
+        for row in _csv.DictReader(f):
+            adresse = " ".join((row.get("address") or "").split()).strip()[:200]
+            if not adresse:
+                skipped += 1
+                continue
+            type_bien = _normalize_type(row.get("type_bien") or "")[:80]
+            if not type_bien:
+                skipped += 1
+                continue
+            surface = _parse_swiss_number(row.get("surface"))
+            prix_m2 = _parse_swiss_number(row.get("prix_m2_retenu"))
+            valeur = _parse_swiss_number(row.get("valeur_venale"))
+            pres = _parse_swiss_number(row.get("prix_presentation"))
+            if not prix_m2 and valeur and surface:
+                prix_m2 = round(valeur / surface)
+            if not prix_m2 and pres and surface:
+                prix_m2 = round(pres / 1.07 / surface)
+            # Pour être dans le Classeur, on veut au moins prix_m2 ET surface
+            # (sinon valeur vénale = 0 → estimation sans intérêt)
+            if not prix_m2 or not surface:
+                skipped += 1
+                continue
+
+            # Année : plus récent millésime trouvé
+            yrs = _re.findall(r"(19\d\d|20\d\d)", row.get("annee") or "")
+            annee = max(yrs) if yrs else ""
+
+            # Quartier : normalise si connu, sinon on garde brut (mais tronqué)
+            quartier = (row.get("quartier") or "").strip()
+            # Enlève les précisions entre parenthèses et après la première virgule
+            quartier = _re.sub(r"\s*\([^)]*\)", "", quartier).split(",")[0].strip()[:120]
+
+            e = Estimation(
+                user_id=uid,
+                address=adresse,
+                quartier=quartier,
+                type_bien=type_bien,
+                surface=surface,
+                annee=annee[:20],
+                description=(row.get("description") or "").strip() or None,
+                prix_m2=prix_m2,
+                marge=0.07,
+                notes=IMPORT_LP_NOTE,
+                courtier="Leonard Properties SA",
+            )
+            db.session.add(e)
+            inserted += 1
+    db.session.commit()
+    return jsonify({"inserted": inserted, "skipped": skipped})
+
+
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
