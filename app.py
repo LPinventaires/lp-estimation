@@ -799,47 +799,84 @@ def _generate_lp_report(e, comparables, stats, force=False):
         min_pm2 = (stats or {}).get("min_pm2")
         max_pm2 = (stats or {}).get("max_pm2")
 
-        prompt = f"""Tu es un rédacteur senior de Leonard Properties SA (courtier immobilier à Genève).
-Rédige le corps d'un rapport d'estimation hédoniste pour un bien, dans le style **sobre, factuel et élégant** de Leonard Properties.
+        is_house = e.type_bien in HOUSE_TYPES
 
-Contexte du bien :
+        prompt = f"""Tu rédiges le corps d'un rapport d'estimation Leonard Properties SA (courtier immobilier à Genève).
+Tu dois **respecter STRICTEMENT la méthode, la structure et la syntaxe officielle des rapports LP** décrites ci-dessous.
+
+DONNÉES DU BIEN :
 - Adresse : {e.address or 'non précisée'}
-- Quartier : {e.quartier or '—'}{f' ({atouts_quartier})' if atouts_quartier else ''}
+- Quartier / commune : {e.quartier or '—'}{f' — atouts : {atouts_quartier}' if atouts_quartier else ''}
 - Type : {e.type_bien or '—'}
-- Surface : {e.surface or '?'} m²
-- Pièces : {e.pieces or '?'}
-- Étage : {e.etage or '?'}
-- Année : {e.annee or '?'}
+- Surface habitable : {e.surface or '?'} m²
+- Pièces : {e.pieces or '?'} · Étage : {e.etage or '?'} · Année : {e.annee or '?'}
 - État : {e.etat or '?'}
 - Extérieurs : {e.balcon or 0} m² (pondération {int((e.balcon_pond or 0) * 100)} %)
 - Parkings : {e.parking_nb or 0} (valeur unitaire {int(e.parking_val or 0)} CHF)
 - Prix/m² retenu : {int(e.prix_m2 or 0)} CHF
-- Description saisie : {(e.description or '').strip() or '—'}
-- Atouts : {(e.atouts or '').strip() or '—'}
-- Points d'attention : {(e.inconvenients or '').strip() or '—'}
-- Marge de négociation + commission : {int((e.marge or 0) * 100)} %
+- Description saisie par le courtier : {(e.description or '').strip() or '—'}
+- Atouts renseignés : {(e.atouts or '').strip() or '—'}
+- Points d'attention renseignés : {(e.inconvenients or '').strip() or '—'}
+- Marge négociation + commission : {int((e.marge or 0) * 100)} %
 - Valeur vénale calculée : {int(e.valeur_venale or 0)} CHF
-- Prix de présentation : {int(e.prix_presentation or 0)} CHF
+- Prix de présentation calculé : {int(e.prix_presentation or 0)} CHF
 
-Comparables retenus (filtre : {match_level}) :
+COMPARABLES DU PANEL (filtre appliqué : {match_level}) :
 {comp_block}
+Statistiques du panel : moyenne {avg_pm2 or '—'} CHF/m² · fourchette {min_pm2 or '—'} – {max_pm2 or '—'} CHF/m².
 
-Statistiques du panel : moyenne {avg_pm2 or '—'} CHF/m² · fourchette {min_pm2 or '—'} — {max_pm2 or '—'} CHF/m².
+============================================================
+MÉTHODE OFFICIELLE LEONARD PROPERTIES — À RESPECTER
+============================================================
 
-Consignes :
-- Rédige uniquement le corps du rapport, en français impeccable.
-- Ne mets pas de titre principal (H1). Utilise `<h2>` pour les sections principales, `<h3>` pour les sous-sections.
-- **Sections attendues, dans l'ordre :**
-  1. « Introduction » (adresse aimable au client, 2-3 phrases : contexte, objectif du rapport)
-  2. « Méthode d'évaluation » (méthode hédoniste comparative, 3-4 phrases sobres)
-  3. « Descriptif du bien » (paragraphe descriptif riche, mentionne quartier et atouts, 4-6 phrases ; puis, si pertinent, des sous-sections `<h3>Atouts</h3><ul>…</ul>` et `<h3>Points d'attention</h3><ul>…</ul>`)
-  4. « Analyse des comparables » (2-3 paragraphes qui commentent finement le panel de comparables retenus : qualité, fourchette, positionnement du bien vis-à-vis d'eux ; cite au moins 2 comparables spécifiques par leur adresse)
-  5. « Positionnement et prix de présentation » (justification du prix/m² retenu et du prix de présentation, ton d'expertise, 3-4 phrases ; termine sur une phrase du type « prix de présentation initial ambitieux et réaliste, ajustable en fonction du retour marché »)
-  6. « Conclusions et réserves » (2 courts paragraphes : conclusion + rappel des limites méthodologiques de l'estimation, cf. décote de servitudes, écart possible +/- 10 %, ce n'est pas une expertise foncière officielle)
-- **Ton LP** : professionnel, sobre, factuel. Évite les superlatifs vides (« magnifique », « exceptionnel ») sauf si les faits les justifient. Français impeccable, phrases complètes.
-- **N'invente rien** qui ne soit pas dans les données ci-dessus. Si un champ est vide, ne le mentionne pas.
-- Utilise `<p>`, `<h2>`, `<h3>`, `<ul>`, `<li>`, `<strong>` uniquement (pas de div, pas de style inline). Pas de guillemets courbes autour du HTML.
-- Réponds uniquement avec le HTML des sections, dans l'ordre demandé, sans préambule ni markdown."""
+**Définition LP de la valeur vénale (à reprendre presque verbatim) :**
+« La valeur vénale d'un bien immobilier représente le prix que l'on peut raisonnablement espérer obtenir lors de sa vente dans un délai d'un an, dans des conditions normales de marché. »
+
+**Méthode hédoniste LP (à reprendre presque verbatim) :**
+« Nous appliquons la méthode hédoniste pour l'évaluation de {'maisons individuelles' if is_house else 'appartements en PPE'}. Cette méthode comparative s'appuie sur un historique des ventes que nous tenons à jour de biens comparables. Les paramètres déterminants incluent : l'emplacement, la qualité de construction, l'architecture, le coefficient d'impôt, la superficie {'du terrain, ' if is_house else ''}le vis-à-vis, le voisinage direct, l'exposition et la vue. Nos experts évaluent ces différents paramètres en fonction de leur importance pour déterminer la valeur vénale. »
+
+{'**Méthode complémentaire pour la villa — valeur intrinsèque :** cite brièvement que LP calcule aussi la valeur réelle (coût terrain × surface parcelle + coût de construction) à titre indicatif, et que l écart entre intrinsèque et hédoniste renseigne sur le dynamisme du marché local.' if is_house else ''}
+
+**Formulations LP à reprendre :**
+- Pour introduire le prix retenu : « En tenant compte des caractéristiques des propriétés similaires vendues et à vendre, et de la moyenne des prix au m² obtenue, nous retenons un prix au m² de CHF {int(e.prix_m2 or 0):,} / m². »
+- Pour conclure : « Ce prix serait considéré comme un prix de présentation initial ambitieux et réaliste, qui nous permettrait de jauger le marché pour ensuite procéder à une adaptation si nécessaire. »
+- Réserves LP standards : « Tout élément ou fait qui n'aurait pas été porté à la connaissance de l'expert et qui pourrait modifier son appréciation, est dûment réservé. Cette estimation n'est pas une expertise foncière officielle et un écart de +/- 10 % est possible selon les conditions de marché. »
+
+**Amortissement :** si le bien n'a pas été rénové depuis plus de 10 ans, mentionner qu'un amortissement de 1 % par an peut être appliqué pour tenir compte de la vétusté (méthode LP).
+
+============================================================
+STRUCTURE OFFICIELLE À GÉNÉRER (dans cet ordre EXACT)
+============================================================
+
+1. **`<h2>1. Introduction</h2>`** — Une lettre courtoise ouvrant sur « Cher Monsieur, Chère Madame, », rappelant le contexte de la mission (« Dans le prolongement de notre visite… ») et annonçant que ce rapport présente l'estimation de valeur vénale ainsi qu'une stratégie de commercialisation. 3–4 phrases.
+
+2. **`<h2>2. Méthode d'évaluation</h2>`** — Reprends la définition LP de la valeur vénale (verbatim ci-dessus), puis explicite la méthode hédoniste comparative telle que définie ci-dessus. {'Ajoute un paragraphe sur la valeur intrinsèque en complément pour cette maison / villa.' if is_house else ''}
+
+3. **`<h2>3. Situation, zone et lois</h2>`** — Situe le bien à l'échelle macro (Genève, quartier) puis micro (accès, transports, écoles, commerces). Si possible, cite la zone d'affectation vraisemblable (Zone 1 vieille-ville, Zone 3 urbaine dense, Zone 5 résidentielle villas, etc.) et mentionne les implications légales génériques en une phrase. Reste factuel.
+
+4. **`<h2>4. Descriptif du bien</h2>`** — Sous-sections `<h3>Situation macro et micro</h3>`, `<h3>Descriptif détaillé</h3>` (distribution, matériaux, exposition, vues), `<h3>Prestations et état général</h3>`, `<h3>Travaux à prévoir</h3>` si pertinent. Riche mais factuel.
+
+5. **`<h2>5. Atouts et points d'attention</h2>`** — Deux sous-sections `<h3>Atouts</h3><ul>…</ul>` et `<h3>Points d'attention</h3><ul>…</ul>` avec des puces courtes, précises, non redondantes.
+
+6. **`<h2>6. Estimation hédoniste — analyse des comparables</h2>`** — Deux ou trois paragraphes qui commentent le panel : qualité et récence des transactions retenues, fourchette de prix/m² observée, positionnement du bien vis-à-vis de ce panel (au-dessus / dans / en-dessous et pourquoi). **Cite au moins 2 comparables par leur adresse.** Termine sur la phrase LP standard « En tenant compte des caractéristiques des propriétés similaires vendues et à vendre, et de la moyenne des prix au m² obtenue, nous retenons un prix au m² de CHF {int(e.prix_m2 or 0):,} / m². »
+
+7. **`<h2>7. Estimation de la valeur vénale</h2>`** — Rappelle la formule : `prix/m² × surface + prix/m² × extérieurs pondérés + parkings`. Détaille les 2–3 composantes en une petite liste ou un paragraphe. Si l'année de construction est ancienne, mentionne l'éventuel amortissement pour vétusté. Termine sur : « **TOTAL VALEUR VÉNALE : CHF {int(e.valeur_venale or 0):,}.-** ».
+
+8. **`<h2>8. Valeur vénale et prix de présentation</h2>`** — Petit paragraphe qui affiche :
+   `<p>Valeur de marché (méthode hédoniste comparative) : <strong>CHF {int(e.valeur_venale or 0):,}.-</strong></p>`
+   `<p>Prix de présentation suggéré (marge de négociation et commission incluses) : <strong>CHF {int(e.prix_presentation or 0):,}.-</strong></p>`
+   Puis reprends la conclusion LP verbatim (« Ce prix serait considéré comme un prix de présentation initial ambitieux et réaliste… »).
+
+9. **`<h2>9. Conclusions et réserves</h2>`** — Reprends les réserves LP verbatim (paragraphe ci-dessus), puis une phrase de clôture courtoise (« Nous restons à votre entière disposition pour tout complément d'information et serions ravis de collaborer avec vous. »).
+
+============================================================
+CONSIGNES DE FORME
+============================================================
+- **Ton LP** : professionnel, sobre, factuel, français impeccable, phrases complètes. Le vouvoiement est de rigueur.
+- **Pas de superlatifs vides** (« magnifique », « exceptionnel », « unique ») sauf si les faits les justifient.
+- **N'invente rien** au-delà des données fournies ; si un champ est vide, ne le mentionne pas.
+- **HTML strict** : n'utilise que `<h2>`, `<h3>`, `<p>`, `<ul>`, `<li>`, `<strong>`, `<em>`. Pas de `<div>`, pas de style inline, pas de titre H1.
+- **Format** : réponds uniquement avec le HTML des 9 sections dans l'ordre, sans préambule, sans markdown, sans triple-backtick."""
 
         response = client.messages.create(
             model="claude-fable-5",
@@ -1771,11 +1808,32 @@ def _migrate():
             db.session.rollback()
 
 
+REPORT_PROMPT_VERSION = "v2-lp-official-2026-07-02"
+
+
+def _invalidate_stale_ai_reports():
+    """Vide report_ai pour toutes les estimations quand le prompt LP a changé de version.
+    Idempotent : ne s'exécute qu'une fois par version, grâce à la table Setting."""
+    key = "report_prompt_version"
+    setting = Setting.query.filter_by(key=key).first()
+    if setting and setting.value == REPORT_PROMPT_VERSION:
+        return
+    # Prompt changé → purge les rapports IA existants pour forcer une régénération
+    Estimation.query.update({Estimation.report_ai: None}, synchronize_session=False)
+    if setting:
+        setting.value = REPORT_PROMPT_VERSION
+    else:
+        db.session.add(Setting(key=key, value=REPORT_PROMPT_VERSION))
+    db.session.commit()
+    app.logger.info(f"Rapports IA invalidés (nouveau prompt {REPORT_PROMPT_VERSION})")
+
+
 with app.app_context():
     db.create_all()
     _migrate()
     seed()
     load_comparables_csv()  # recharge les comparables du CSV à chaque démarrage
+    _invalidate_stale_ai_reports()
 
 
 if __name__ == "__main__":
