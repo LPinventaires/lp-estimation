@@ -45,6 +45,14 @@
       Filtrés par <strong>même quartier</strong>, <strong>surface ±20 %</strong>{% if e.type_bien %} et <strong>même famille de bien</strong>{% endif %} — puisés dans les estimations LP et la base de références.
     </p>
 
+    {% set _house_types = ['Villa', 'Maison individuelle', 'Maison', 'Hôtel Particulier'] %}
+    {% if e.type_bien in _house_types %}
+    <div style="margin:0 0 16px;padding:12px 16px;background:#fdf1de;border:1px solid var(--line-strong);border-left:3px solid var(--accent2);border-radius:8px;font-size:13px;color:var(--ink-soft)">
+      <strong style="color:var(--accent2)">Prix/m² approché pour cette catégorie.</strong>
+      Les comparables « maisons » sont en grande partie issus du Registre foncier (Neatalerts), dont la surface renvoyée est souvent celle de la <em>parcelle</em> plutôt que de la surface habitable. Traiter les prix/m² comme un ordre de grandeur — la comparaison des <em>prix totaux</em> reste fiable.
+    </div>
+    {% endif %}
+
     {% if not comparables %}
       <div style="padding:16px;background:var(--bg3);border:1px dashed var(--line-strong);border-radius:10px;color:var(--muted);text-align:center">
         Aucun comparable ne correspond aux critères stricts (quartier + surface ±20 % + type). Élargis la surface saisie ou ajoute des estimations LP dans ce quartier pour enrichir la base.
