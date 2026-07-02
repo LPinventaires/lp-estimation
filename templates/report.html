@@ -118,6 +118,24 @@
               {% endif %}
             </td>
           </tr>
+          {% if c.atouts or c.inconvenients %}
+          <tr style="background:var(--bg3)">
+            <td colspan="7" style="padding:8px 14px;font-size:12.5px;border-top:none;color:var(--ink-soft)">
+              {% if c.atouts %}
+                <div style="margin-bottom:{% if c.inconvenients %}4px{% else %}0{% endif %}">
+                  <span style="color:var(--good);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px">+ Atouts</span>
+                  <span style="margin-left:8px;font-style:italic">{{ c.atouts|replace('\n', ' · ') }}</span>
+                </div>
+              {% endif %}
+              {% if c.inconvenients %}
+                <div>
+                  <span style="color:var(--danger);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px">− Inconvénients</span>
+                  <span style="margin-left:8px;font-style:italic">{{ c.inconvenients|replace('\n', ' · ') }}</span>
+                </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
           {% endfor %}
         </tbody>
       </table>
