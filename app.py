@@ -509,6 +509,22 @@ def find_comparables(quartier, address, surface, type_bien, current_eid=None, us
         kind_order.get(c["kind"], 9),                # LP → sold → retenu → forsale
     ))
 
+    # Dédoublonnage : même adresse + surface + prix/m² → on garde la 1re occurrence
+    # (celle avec description ou la plus récente d'après le tri qui précède).
+    def _addr_key(a):
+        return " ".join((a or "").lower().split()).rstrip(",.")
+    seen = set()
+    unique = []
+    for c in comps:
+        key = (_addr_key(c.get("adresse")),
+               int(c["surface"] or 0),
+               int(c["prix_m2"] or 0))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(c)
+    comps = unique
+
     # Prix proposé = moyenne des prix/m² des comparables vendus / LP / retenus
     sold_pm2 = [c["prix_m2"] for c in comps if c["kind"] in ("sold", "retenu", "estimation")]
     forsale_pm2 = [c["prix_m2"] for c in comps if c["kind"] == "forsale"]
@@ -990,6 +1006,13 @@ def api_preview_comparables():
         quartier, address, surface, type_bien,
         current_eid=None, user_id=session.get("user_id"),
     )
+    # Sur la preview, on écarte les estimations avec la même adresse que celle en
+    # cours de saisie (souvent des essais précédents dupliqués)
+    if address:
+        key = " ".join(address.lower().split()).rstrip(",.")
+        def _same_addr(a):
+            return " ".join((a or "").lower().split()).rstrip(",.") == key
+        comps = [c for c in comps if not _same_addr(c.get("adresse"))]
     # Version allégée pour le formulaire (max 6)
     lite = [{
         "adresse": c["adresse"],
