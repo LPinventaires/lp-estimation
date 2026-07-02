@@ -388,11 +388,20 @@ def find_comparables(quartier, address, surface, type_bien, current_eid=None, us
 
     # ---- Source 2 : RefPrice (marché) ----
     for r in RefPrice.query.all():
-        if quartier and r.quartier and r.quartier.lower() != quartier.lower():
-            continue
-        if r.type_bien and type_bien and not _same_type_category(r.type_bien, type_bien):
-            continue
-        if r.surface and surface:
+        # Quartier — obligatoire si target en a un
+        if quartier:
+            if not r.quartier or r.quartier.lower() != quartier.lower():
+                continue
+        # Type — obligatoire si target en a un : on exclut les refs sans type déclaré
+        if type_bien:
+            if not r.type_bien:
+                continue
+            if not _same_type_category(r.type_bien, type_bien):
+                continue
+        # Surface — obligatoire si target en a une : on exclut les refs sans surface
+        if surface:
+            if not r.surface:
+                continue
             lo, hi = surface * 0.8, surface * 1.2
             if not (lo <= r.surface <= hi):
                 continue
