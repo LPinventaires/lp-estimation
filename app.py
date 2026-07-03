@@ -1047,6 +1047,29 @@ CONSIGNES DE FORME
         return ""
 
 
+@app.route("/admin/purge-tests")
+@login_required
+def admin_purge_tests():
+    """Supprime les estimations de test créées pendant le développement.
+    Une entrée est considérée 'test' si son adresse contient un mot-clé sentinelle."""
+    uid = session.get("user_id")
+    keywords = ["test", "probe", "chemin des crêts 5", "chemin des fauvettes 8",
+                "route de meyrin 210", "route de chêne 42", "rue de la croix-d'or 12",
+                "rue micheli-du-crest 20"]
+    ests = Estimation.query.filter_by(user_id=uid).all()
+    deleted = []
+    for e in ests:
+        addr_lower = (e.address or "").lower()
+        # Ne PAS supprimer les imports LP (jamais)
+        if e.notes == IMPORT_LP_NOTE:
+            continue
+        if any(k in addr_lower for k in keywords):
+            deleted.append(e.address)
+            db.session.delete(e)
+    db.session.commit()
+    return jsonify({"deleted": len(deleted), "adresses": deleted})
+
+
 @app.route("/admin/purge-duplicates")
 @login_required
 def admin_purge_duplicates():
