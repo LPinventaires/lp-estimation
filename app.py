@@ -162,11 +162,13 @@ def own_estimations():
 
 
 def own_estimation_or_404(eid):
-    """Fetch une estimation appartenant à l'utilisateur connecté, sinon 404."""
+    """Fetch une estimation appartenant à l'utilisateur connecté, sinon redirige
+    gentiment vers le Classeur (l'estimation a peut-être été supprimée)."""
     e = own_estimations().filter_by(id=eid).first()
     if not e:
+        flash("Cette estimation n'existe plus. Voici ton Classeur.")
         from flask import abort
-        abort(404)
+        abort(redirect(url_for("classeur")))
     return e
 
 
@@ -1014,10 +1016,14 @@ def admin_purge_duplicates():
     uid = session.get("user_id")
     seen = {}
     to_delete = []
-    # Trie : la plus récente (created_at desc) l'emporte
-    ests = Estimation.query.filter_by(user_id=uid).order_by(Estimation.created_at.desc()).all()
+    # ⚠️ On ne dédoublonne QUE les imports LP entre eux — jamais les créations
+    # manuelles de l'utilisateur, sinon on risque de supprimer une estimation
+    # qu'il vient de créer parce qu'un import LP a la même adresse.
+    ests = (Estimation.query
+            .filter_by(user_id=uid, notes=IMPORT_LP_NOTE)
+            .order_by(Estimation.created_at.desc())
+            .all())
     for e in ests:
-        # Clé large : uniquement l'adresse normalisée → un même bien = 1 entrée max
         key = " ".join((e.address or "").lower().split()).rstrip(",.")
         if not key:
             continue
@@ -1028,7 +1034,7 @@ def admin_purge_duplicates():
     for e in to_delete:
         db.session.delete(e)
     db.session.commit()
-    return jsonify({"deleted": len(to_delete), "kept": len(seen)})
+    return jsonify({"deleted": len(to_delete), "kept_lp_imports": len(seen)})
 
 
 @app.route("/api/preview-comparables", methods=["POST"])
