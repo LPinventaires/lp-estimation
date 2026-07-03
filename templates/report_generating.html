@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:600px;margin:80px auto;text-align:center;padding:0 20px">
+  <div style="background:var(--card);border:1px solid var(--line-strong);border-radius:16px;padding:48px 36px;box-shadow:var(--shadow-sm)">
+    <div id="spinner" style="width:64px;height:64px;border:5px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 24px;animation:spin 1s linear infinite"></div>
+
+    <h1 style="font-family:var(--serif);font-size:26px;color:var(--ink);margin:0 0 10px">Rédaction du rapport LP</h1>
+    <p style="color:var(--muted);font-size:15px;line-height:1.6;margin:0 0 6px">
+      Claude analyse les comparables et rédige les 9 sections de ton rapport.
+    </p>
+    {% if address %}
+      <p style="color:var(--ink-soft);font-size:14px;font-style:italic;margin:0 0 24px">{{ address }}</p>
+    {% endif %}
+
+    <div id="status" style="color:var(--accent2);font-size:14px;font-weight:600;margin-top:20px">
+      <span id="elapsed">0</span> s · en cours…
+    </div>
+
+    <div style="margin-top:36px;padding:14px 18px;background:var(--bg2);border-radius:10px;color:var(--muted);font-size:12.5px;line-height:1.5">
+      Cette page se rafraîchit toute seule dès que le rapport est prêt (30 à 60 s en général).
+      Tu peux fermer l'onglet et revenir plus tard : la génération continue en arrière-plan.
+    </div>
+  </div>
+</div>
+
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<script>
+(function() {
+  const eid = {{ eid }};
+  const elapsedEl = document.getElementById('elapsed');
+  const t0 = Date.now();
+  let stopped = false;
+
+  function tick() {
+    if (stopped) return;
+    elapsedEl.textContent = Math.floor((Date.now() - t0) / 1000);
+  }
+  setInterval(tick, 1000);
+
+  async function poll() {
+    if (stopped) return;
+    try {
+      const r = await fetch(`/estimation/${eid}/status`, {cache: 'no-store'});
+      const d = await r.json();
+      if (d.ready) {
+        stopped = true;
+        window.location.href = `/estimation/${eid}`;
+        return;
+      }
+    } catch (e) { /* ignore */ }
+    setTimeout(poll, 3000);
+  }
+  setTimeout(poll, 3000);
+})();
+</script>
+{% endblock %}
