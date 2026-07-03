@@ -563,6 +563,12 @@ def find_comparables(quartier, address, surface, type_bien, current_eid=None, us
         s += kind_order.get(c["kind"], 9)
         return s
 
+    # Filtre outliers : à Genève les prix habitables réalistes sont ~5-40k CHF/m².
+    # En dessous : surface parcelle confondue avec surface habitable (registre foncier).
+    # Au-dessus : extraction Claude erronée ou bien exceptionnel non représentatif.
+    PM2_MIN, PM2_MAX = 5000, 40000
+    comps = [c for c in comps if PM2_MIN <= (c.get("prix_m2") or 0) <= PM2_MAX]
+
     comps.sort(key=_score)
 
     # Dédoublonnage prudent : deux comparables avec la même adresse et le même
@@ -584,14 +590,21 @@ def find_comparables(quartier, address, surface, type_bien, current_eid=None, us
     MAX_COMPARABLES = 8
     comps = comps[:MAX_COMPARABLES]
 
-    # Prix proposé = moyenne des prix/m² des comparables vendus / LP / retenus
+    # Prix proposé = MÉDIANE des prix/m² des comparables (robuste aux extrêmes).
+    def _median(vals):
+        v = sorted(vals)
+        n = len(v)
+        if n == 0:
+            return None
+        return v[n // 2] if n % 2 == 1 else round((v[n // 2 - 1] + v[n // 2]) / 2)
     sold_pm2 = [c["prix_m2"] for c in comps if c["kind"] in ("sold", "retenu", "estimation")]
     forsale_pm2 = [c["prix_m2"] for c in comps if c["kind"] == "forsale"]
-    proposed = None
     if sold_pm2:
-        proposed = round(sum(sold_pm2) / len(sold_pm2))
+        proposed = _median(sold_pm2)
     elif forsale_pm2:
-        proposed = round(sum(forsale_pm2) / len(forsale_pm2) * 0.95)
+        proposed = round(_median(forsale_pm2) * 0.95)
+    else:
+        proposed = None
 
     stats = {
         "total": len(comps),
