@@ -1186,7 +1186,7 @@ def estimation_report(eid):
     if should_start:
         threading.Thread(
             target=_generate_report_in_background,
-            args=(app._get_current_object(), eid, force),
+            args=(app, eid, force),
             daemon=True,
         ).start()
 
