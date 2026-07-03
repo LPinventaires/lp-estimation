@@ -1122,24 +1122,39 @@ def estimation_new():
 def estimation_report(eid):
     e = own_estimation_or_404(eid)
     force = request.args.get("regenerate") == "1"
-    # Comparables filtrés (même quartier + surface ±20% + même catégorie)
-    proposed_pm2, comparables, stats = find_comparables(
-        e.quartier, e.address, e.surface, e.type_bien,
-        current_eid=e.id, user_id=session.get("user_id"),
-    )
-    # Corps narratif LP : tenter la génération Claude (avec cache), fallback sur build_report()
-    html_ai = _generate_lp_report(e, comparables, stats, force=force)
-    if html_ai:
-        html = html_ai
-    else:
-        _, legacy_pool = ref_for(e.quartier, e.address)
-        sold = [r for r in legacy_pool if r.kind in ("sold", "retenu")]
-        forsale = [r for r in legacy_pool if r.kind == "forsale"]
-        html = build_report(e, sold, forsale)
+    # Étape 1 : comparables (défensif)
+    try:
+        proposed_pm2, comparables, stats = find_comparables(
+            e.quartier, e.address, e.surface, e.type_bien,
+            current_eid=e.id, user_id=session.get("user_id"),
+        )
+    except Exception as exc:
+        app.logger.exception(f"find_comparables KO pour estimation {eid} : {exc}")
+        proposed_pm2, comparables, stats = None, [], {"match_level": "erreur", "total": 0,
+                                                     "n_sold": 0, "n_forsale": 0,
+                                                     "min_pm2": None, "max_pm2": None,
+                                                     "avg_pm2": None}
+    # Étape 2 : corps narratif LP (défensif, avec fallback en cascade)
+    html = ""
+    try:
+        html = _generate_lp_report(e, comparables, stats, force=force) or ""
+    except Exception as exc:
+        app.logger.exception(f"_generate_lp_report KO pour estimation {eid} : {exc}")
+    if not html:
+        try:
+            _, legacy_pool = ref_for(e.quartier, e.address)
+            sold = [r for r in legacy_pool if r.kind in ("sold", "retenu")]
+            forsale = [r for r in legacy_pool if r.kind == "forsale"]
+            html = build_report(e, sold, forsale)
+        except Exception as exc:
+            app.logger.exception(f"build_report KO pour estimation {eid} : {exc}")
+            html = ("<h2>Rapport non disponible</h2>"
+                    "<p>La génération du corps du rapport a échoué. "
+                    "Réessaie en cliquant sur <em>Régénérer</em> ou reviens dans quelques minutes.</p>")
     return render_template("report.html", e=e, report_html=html,
                            comparables=comparables, stats=stats,
                            proposed_pm2=proposed_pm2,
-                           ai_generated=bool(html_ai))
+                           ai_generated=bool(html))
 
 
 @app.route("/estimation/<int:eid>/delete", methods=["POST"])
