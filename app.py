@@ -988,8 +988,8 @@ CONSIGNES DE FORME
 - **Format** : réponds uniquement avec le HTML des 9 sections dans l'ordre, sans préambule, sans markdown, sans triple-backtick."""
 
         response = client.messages.create(
-            model="claude-opus-4-8",
-            max_tokens=3500,
+            model="claude-sonnet-5",
+            max_tokens=2500,
             messages=[{"role": "user", "content": prompt}],
         )
         html = "".join(b.text for b in response.content if b.type == "text").strip()
@@ -2098,7 +2098,7 @@ def _migrate():
             db.session.rollback()
 
 
-REPORT_PROMPT_VERSION = "v2-lp-official-opus48-2026-07-02"
+REPORT_PROMPT_VERSION = "v3-lp-sonnet5-2026-07-03"
 
 
 def _invalidate_stale_ai_reports():
