@@ -988,6 +988,31 @@ CONSIGNES DE FORME
         return ""
 
 
+@app.route("/admin/purge-duplicates")
+@login_required
+def admin_purge_duplicates():
+    """Supprime les estimations en doublon (même adresse+surface+prix/m²).
+    On garde la plus récente pour chaque clé."""
+    uid = session.get("user_id")
+    seen = {}
+    to_delete = []
+    ests = Estimation.query.filter_by(user_id=uid).order_by(Estimation.created_at.desc()).all()
+    for e in ests:
+        key = (
+            " ".join((e.address or "").lower().split()).rstrip(",."),
+            int(e.surface or 0),
+            int(e.prix_m2 or 0),
+        )
+        if key in seen:
+            to_delete.append(e)
+        else:
+            seen[key] = e
+    for e in to_delete:
+        db.session.delete(e)
+    db.session.commit()
+    return jsonify({"deleted": len(to_delete), "kept": len(seen)})
+
+
 @app.route("/api/preview-comparables", methods=["POST"])
 @login_required
 def api_preview_comparables():
