@@ -996,13 +996,13 @@ def admin_purge_duplicates():
     uid = session.get("user_id")
     seen = {}
     to_delete = []
+    # Trie : la plus récente (created_at desc) l'emporte
     ests = Estimation.query.filter_by(user_id=uid).order_by(Estimation.created_at.desc()).all()
     for e in ests:
-        key = (
-            " ".join((e.address or "").lower().split()).rstrip(",."),
-            int(e.surface or 0),
-            int(e.prix_m2 or 0),
-        )
+        # Clé large : uniquement l'adresse normalisée → un même bien = 1 entrée max
+        key = " ".join((e.address or "").lower().split()).rstrip(",.")
+        if not key:
+            continue
         if key in seen:
             to_delete.append(e)
         else:
