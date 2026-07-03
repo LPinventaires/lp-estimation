@@ -156,9 +156,20 @@ def current_user():
     return User.query.get(uid)
 
 
+IMPORT_LP_NOTE = "Importé depuis rapport LP"
+
+
 def own_estimations():
     """Query base — estimations de l'utilisateur connecté seulement."""
     return Estimation.query.filter_by(user_id=session.get("user_id"))
+
+
+def own_generated_estimations():
+    """Comme own_estimations() mais exclut les imports LP historiques :
+    ne renvoie que les rapports générés par l'utilisateur via le formulaire."""
+    return (own_estimations()
+            .filter(db.or_(Estimation.notes != IMPORT_LP_NOTE,
+                           Estimation.notes.is_(None))))
 
 
 def own_estimation_or_404(eid):
@@ -239,9 +250,6 @@ def signup():
 def logout():
     session.clear()
     return redirect(url_for("index"))
-
-
-IMPORT_LP_NOTE = "Importé depuis rapport LP"
 
 
 @app.route("/admin/import-lp-estimations")
@@ -514,6 +522,16 @@ def find_comparables(quartier, address, surface, type_bien, current_eid=None, us
         neighbors = [quartier] + NEIGHBOR_QUARTIERS.get(quartier, [])
         comps = _search(neighbors, None, False)
         match_level = "voisins, tous types"
+
+    # Niveau 6 : filet de sécurité — même type, n'importe où à Genève
+    if len(comps) < MIN_COMPARABLES:
+        comps = _search([], None, True)
+        match_level = "toute la ville, même type"
+
+    # Niveau 7 : dernier recours — n'importe quoi de résidentiel à Genève
+    if len(comps) < MIN_COMPARABLES:
+        comps = _search([], None, False)
+        match_level = "toute la ville, tous types"
 
     # Tri : comparables avec description riche d'abord (utile pour le rapport),
     # puis année la plus récente, puis LP > vendus > retenus > à vendre.
@@ -1319,11 +1337,11 @@ def quick_analyze():
 @app.route("/estimations")
 @login_required
 def estimations_list():
-    """Liste toutes les estimations avec recherche et filtres."""
+    """Historique des rapports générés par l'utilisateur (imports LP exclus)."""
     q = request.args.get("q", "").strip()
     quartier = request.args.get("quartier", "").strip()
 
-    query = own_estimations()
+    query = own_generated_estimations()
     if q:
         query = query.filter(
             db.or_(
@@ -1423,7 +1441,8 @@ def dashboard():
         db.func.avg(Estimation.prix_m2 * Estimation.surface * (1 + Estimation.marge))
     ).filter(Estimation.user_id == uid).group_by(Estimation.quartier).all()
 
-    recent = own_estimations().order_by(Estimation.created_at.desc()).limit(10).all()
+    # Historique = rapports générés par l'utilisateur (pas les imports LP historiques)
+    recent = own_generated_estimations().order_by(Estimation.created_at.desc()).limit(10).all()
 
     # Audit logs restreints aux estimations de l'utilisateur.
     own_ids = [row[0] for row in db.session.query(Estimation.id).filter_by(user_id=uid).all()]
