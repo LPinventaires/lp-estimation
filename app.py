@@ -517,51 +517,72 @@ def find_comparables(quartier, address, surface, type_bien, current_eid=None, us
         comps = _search(neighbors, None, True)
         match_level = "quartier + voisins"
 
-    # Niveau 5 : tout le quartier + voisins, tous types
+    # Niveau 5 : tout le quartier + voisins, tous types résidentiels
     if len(comps) < MIN_COMPARABLES and quartier:
         neighbors = [quartier] + NEIGHBOR_QUARTIERS.get(quartier, [])
         comps = _search(neighbors, None, False)
         match_level = "voisins, tous types"
+    # On s'arrête là : mieux vaut 2 comparables pertinents que 350 non pertinents.
+    # Si <MIN_COMPARABLES sont trouvés, le template affichera un message dédié.
 
-    # Niveau 6 : filet de sécurité — même type, n'importe où à Genève
-    if len(comps) < MIN_COMPARABLES:
-        comps = _search([], None, True)
-        match_level = "toute la ville, même type"
-
-    # Niveau 7 : dernier recours — n'importe quoi de résidentiel à Genève
-    if len(comps) < MIN_COMPARABLES:
-        comps = _search([], None, False)
-        match_level = "toute la ville, tous types"
-
-    # Tri : comparables avec description riche d'abord (utile pour le rapport),
-    # puis année la plus récente, puis LP > vendus > retenus > à vendre.
+    # Tri par pertinence — un score composite qui privilégie ce qui ressemble
+    # vraiment au bien à estimer (surface proche, type exact, quartier exact,
+    # année récente, description riche).
     kind_order = {"estimation": 0, "sold": 1, "retenu": 2, "forsale": 3}
+    quartier_lc = (quartier or "").lower()
+
     def _year_of(c):
         try:
             return int(str(c.get("annee") or "0")[:4])
         except ValueError:
             return 0
-    comps.sort(key=lambda c: (
-        0 if c.get("description") else 1,           # descriptions d'abord
-        -_year_of(c),                                # année desc
-        kind_order.get(c["kind"], 9),                # LP → sold → retenu → forsale
-    ))
 
-    # Dédoublonnage : même adresse + surface + prix/m² → on garde la 1re occurrence
-    # (celle avec description ou la plus récente d'après le tri qui précède).
+    def _score(c):
+        # Plus bas = plus pertinent (utilisé comme sort key)
+        s = 0
+        # Surface : écart en % → 0 si parfait, jusqu'à 100+ si très différent
+        if surface and c.get("surface"):
+            s += abs(c["surface"] - surface) / surface * 100
+        elif surface:
+            s += 50  # pénalise doucement si la comparable n'a pas de surface
+        # Type de bien : bonus si match exact (même famille)
+        if type_bien and c.get("type_bien"):
+            if _same_type_category(c["type_bien"], type_bien):
+                s -= 15
+        # Quartier exact : bonus important
+        if quartier_lc and (c.get("quartier") or "").lower() == quartier_lc:
+            s -= 20
+        # Année récente : bonus (2024 mieux que 2018)
+        yr = _year_of(c)
+        if yr:
+            s -= max(0, (yr - 2015) * 0.5)  # +5 pts pour 2025 vs 0 pour 2015
+        # Description riche = LP tenue à jour → bonus léger
+        if c.get("description"):
+            s -= 5
+        # Nature de la transaction : les ventes réelles > les LP > les mises en vente
+        s += kind_order.get(c["kind"], 9)
+        return s
+
+    comps.sort(key=_score)
+
+    # Dédoublonnage prudent : deux comparables avec la même adresse et le même
+    # prix/m² sont considérés identiques (surface peut être null sur certains
+    # imports LP historiques — on ne veut pas garder les deux).
     def _addr_key(a):
         return " ".join((a or "").lower().split()).rstrip(",.")
     seen = set()
     unique = []
     for c in comps:
-        key = (_addr_key(c.get("adresse")),
-               int(c["surface"] or 0),
-               int(c["prix_m2"] or 0))
+        key = (_addr_key(c.get("adresse")), int(c["prix_m2"] or 0))
         if key in seen:
             continue
         seen.add(key)
         unique.append(c)
     comps = unique
+
+    # Plafond de qualité : garde les 8 meilleurs (largement assez pour l'annexe)
+    MAX_COMPARABLES = 8
+    comps = comps[:MAX_COMPARABLES]
 
     # Prix proposé = moyenne des prix/m² des comparables vendus / LP / retenus
     sold_pm2 = [c["prix_m2"] for c in comps if c["kind"] in ("sold", "retenu", "estimation")]
