@@ -274,13 +274,20 @@ def admin_import_lp_estimations():
             prix_m2 = _parse_swiss_number(row.get("prix_m2_retenu"))
             valeur = _parse_swiss_number(row.get("valeur_venale"))
             pres = _parse_swiss_number(row.get("prix_presentation"))
+            # Reconstitue prix_m2 quand on a surface + valeur/présentation
             if not prix_m2 and valeur and surface:
                 prix_m2 = round(valeur / surface)
             if not prix_m2 and pres and surface:
                 prix_m2 = round(pres / 1.07 / surface)
-            # Pour être dans le Classeur, on veut au moins prix_m2 ET surface
-            # (sinon valeur vénale = 0 → estimation sans intérêt)
-            if not prix_m2 or not surface:
+            # Reconstitue surface quand on a prix_m2 + valeur/présentation
+            if not surface and prix_m2 and valeur:
+                surface = round(valeur / prix_m2)
+            if not surface and prix_m2 and pres:
+                surface = round(pres / 1.07 / prix_m2)
+            # On accepte l'estimation dès qu'on a AU MOINS un signal de prix.
+            # Sans surface ni prix_m2, le Classeur affichera un tiret mais le
+            # prix de présentation reste visible.
+            if not (prix_m2 or valeur or pres):
                 skipped += 1
                 continue
 
@@ -293,15 +300,26 @@ def admin_import_lp_estimations():
             # Enlève les précisions entre parenthèses et après la première virgule
             quartier = _re.sub(r"\s*\([^)]*\)", "", quartier).split(",")[0].strip()[:120]
 
+            # Description : on préfixe avec le prix LP quand la surface manque
+            # (dans ce cas la valeur vénale calculée sera 0)
+            description = (row.get("description") or "").strip()
+            if not surface or not prix_m2:
+                bits = []
+                if valeur: bits.append(f"Valeur vénale retenue par LP : CHF {int(valeur):,}".replace(",", "'"))
+                if pres: bits.append(f"Prix de présentation : CHF {int(pres):,}".replace(",", "'"))
+                if bits:
+                    prefix = " · ".join(bits) + "."
+                    description = prefix + ("\n" + description if description else "")
+
             e = Estimation(
                 user_id=uid,
                 address=adresse,
                 quartier=quartier,
                 type_bien=type_bien,
-                surface=surface,
+                surface=surface or 0,
                 annee=annee[:20],
-                description=(row.get("description") or "").strip() or None,
-                prix_m2=prix_m2,
+                description=description or None,
+                prix_m2=prix_m2 or 0,
                 marge=0.07,
                 notes=IMPORT_LP_NOTE,
                 courtier="Leonard Properties SA",
